@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WattWise — Smart Energy Coach</title>
+
+<!-- Favicon & PWA Icons (รูปโลโก้ของคุณ) -->
+<link rel="icon" type="image/png" href="Logo.png.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0f19">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #0b0f19;
+  --card: rgba(21, 29, 46, 0.7);
+  --card-hover: rgba(30, 41, 64, 0.85);
+  --bd: rgba(255, 255, 255, 0.08);
+  --tx: #f1f5f9;
+  --mu: #94a3b8;
+  --bl: #2563eb;
+  --cyan: #06b6d4;
+  --tl: #10b981;
+  --rd: #f43f5e;
+  --amber: #f59e0b;
+}
+
+* { box-sizing: border-box; transition: background 0.2s, border-color 0.2s, transform 0.2s; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--tx); font-family: 'Inter', 'Noto Sans Thai', system-ui, sans-serif; min-height: 100vh; }
+
+body { 
+  display: flex; 
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(6, 182, 212, 0.08) 0%, transparent 40%);
+}
+
+/* Sidebar Navigation */
+nav {
+  width: 260px;
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(11, 15, 25, 0.85);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--bd);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.5px;
+  margin-bottom: 32px;
+  color: #fff;
+}
+
+.logo img {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+  object-fit: cover;
+}
+
+nav button {
+  all: unset;
+  cursor: pointer;
+  padding: 14px 18px;
+  border-radius: 14px;
+  color: var(--mu);
+  font-weight: 500;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+nav button:hover { background: rgba(255, 255, 255, 0.04); color: var(--tx); }
+nav button.on { 
+  background: rgba(37, 99, 235, 0.15); 
+  color: #60a5fa; 
+  border: 1px solid rgba(96, 165, 250, 0.25); 
+  font-weight: 600; 
+}
+
+/* Main Layout */
+main { flex: 1; padding: 40px; max-width: 1040px; margin: 0 auto; }
+
+.eyebrow { color: var(--cyan); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+h1 { margin: 6px 0 8px; font-size: 32px; font-weight: 600; letter-spacing: -0.5px; }
+.sub { color: var(--mu); margin: 0 0 28px; font-weight: 300; font-size: 15px; }
+
+/* Cards (Ventriloc Style) */
+.card {
+  background: var(--card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--bd);
+  border-radius: 24px;
+  padding: 26px;
+  margin-bottom: 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+}
+
+.big { font-size: 36px; font-weight: 700; letter-spacing: -1px; color: #fff; margin: 6px 0; }
+.mu { color: var(--mu); font-size: 14px; }
+
+/* Dynamic Progress Bar */
+.bar { height: 12px; background: rgba(255, 255, 255, 0.06); border-radius: 99px; overflow: hidden; margin: 14px 0; }
+.bar b { display: block; height: 100%; background: linear-gradient(90deg, var(--bl), var(--cyan)); border-radius: 99px; }
+
+.row { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+label { display: block; font-weight: 500; font-size: 14px; margin: 10px 0 6px; color: var(--tx); }
+input, select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--tx);
+  font: inherit;
+  outline: none;
+}
+input:focus, select:focus { border-color: var(--bl); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); }
+
+/* Buttons */
+.btn {
+  all: unset;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--bl), #1d4ed8);
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4); }
+.btn.g { background: rgba(255, 255, 255, 0.05); color: var(--tx); border: 1px solid var(--bd); box-shadow: none; }
+.btn.g:hover { background: rgba(255, 255, 255, 0.1); }
+.x { all: unset; cursor: pointer; color: var(--rd); font-size: 13px; font-weight: 500; }
+.x:hover { text-decoration: underline; }
+
+/* Alerts & Status Chips */
+.alert {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fda4af;
+  padding: 16px 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.alert.ok {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+.chip {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+}
+
+.tip { display: flex; gap: 16px; }
+
+/* Plot / Chart */
+.plot { position: relative; height: 180px; display: flex; gap: 4px; align-items: flex-end; margin-top: 20px; }
+.col { flex: 1; height: 100%; display: flex; align-items: flex-end; cursor: pointer; }
+.stk { display: flex; flex-direction: column-reverse; width: 100%; border-radius: 6px 6px 0 0; overflow: hidden; }
+.stk.over { box-shadow: 0 -4px 12px rgba(244, 63, 94, 0.5); }
+.stk.fut { background: rgba(255, 255, 255, 0.05); }
+.stk.today { outline: 2px solid var(--cyan); }
+.stk.sel { outline: 2px solid var(--bl); }
+.seg { width: 100%; }
+.lim { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--tl); z-index: 2; opacity: 0.8; }
+.lab { display: flex; gap: 4px; margin-top: 8px; }
+.lab span { flex: 1; text-align: center; font-size: 11px; color: var(--mu); }
+.lg { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--mu); margin-top: 14px; }
+.lg i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+.ctl { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+.ctl input { width: 160px; }
+
+.item { padding: 14px 0; border-top: 1px solid var(--bd); }
+
+/* Responsive Mobile (Safari iOS) */
+@media(max-width: 800px) {
+  body { flex-direction: column-reverse; }
+  nav {
+    width: 100%;
+    flex-direction: row;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+    border-right: 0;
+    border-top: 1px solid var(--bd);
+    justify-content: space-around;
+  }
+  .logo { display: none; }
+  nav button { flex: 1; text-align: center; justify-content: center; font-size: 13px; padding: 10px 0; }
+  main { padding: 24px 16px 100px; }
+  .grid { grid-template-columns: 1fr; }
+  .big { font-size: 30px; }
+}
+
+/* ---- Dashboard components (แรงบันดาลใจจากโครงสร้างแดชบอร์ด Ventriloc) ---- */
+.meta{color:var(--mu);font-size:13px;margin:-2px 0 18px}
+.sec{font-size:18px;font-weight:600;margin:30px 0 4px;letter-spacing:-.2px}
+.secd{color:var(--mu);font-size:13px;margin:0 0 14px;font-weight:300}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:16px}
+.kpi{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--bd);backdrop-filter:blur(16px)}
+.kpi>div{flex:1;min-width:0}.kpi b{display:block;font-size:13px;font-weight:600}.kpi small{color:var(--mu);font-size:11px}
+.kpi .v{font-size:20px;font-weight:700;white-space:nowrap}
+.kpi.hl{border-color:rgba(96,165,250,.7);box-shadow:0 0 0 4px rgba(37,99,235,.14)}
+.ico{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(37,99,235,.16);color:#60a5fa;flex:none}
+.ico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.crow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;font-size:14px}.crow+.crow{border-top:1px solid var(--bd)}
+.delta{font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;margin-left:8px}
+.delta.dn{background:rgba(16,185,129,.15);color:#6ee7b7}.delta.up{background:rgba(244,63,94,.15);color:#fda4af}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;color:var(--mu);font-weight:500;font-size:12px;padding:8px 6px;border-bottom:1px solid var(--bd)}
+.tbl td{padding:11px 6px;border-bottom:1px solid var(--bd)}.tbl tr:last-child td{border:0}
+.bar.sm{height:6px;margin:0 0 4px}
+details>summary{list-style:none}
+#entry{flex:1;min-width:0}body.app #entry{display:none}body:not(.app) nav,body:not(.app) main{display:none}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}.top{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px;letter-spacing:-.5px}.brand img{width:36px;height:36px;border-radius:10px}
+.pill{display:flex;gap:4px;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:99px;padding:6px}
+.pill a{color:var(--mu);font-size:14px;font-weight:500;padding:8px 16px;border-radius:99px;cursor:pointer}.pill a:hover{color:#fff;background:rgba(255,255,255,.07)}
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;padding:48px 0 40px}
+.hero h1{font-size:clamp(38px,5.4vw,66px);line-height:1.04;font-weight:700;letter-spacing:-2px;margin:0 0 22px}
+.hl2{color:#60a5fa;border-bottom:4px solid rgba(96,165,250,.4)}.lead{color:var(--mu);font-size:18px;line-height:1.6;max-width:520px;margin:0 0 28px}
+.btns{display:flex;gap:12px;flex-wrap:wrap}.btn.o{background:none;border:1px solid rgba(255,255,255,.25);box-shadow:none}
+.stack{position:relative;height:440px}.mini{position:absolute;background:rgba(21,29,46,.92);border:1px solid var(--bd);border-radius:16px;padding:14px 16px;box-shadow:0 24px 50px rgba(0,0,0,.4)}
+.mini h4{margin:0 0 2px;font-size:13px;color:#93c5fd}.mini small{color:var(--mu);font-size:11px}.mini .n{font-size:24px;font-weight:700;margin:6px 0 2px}
+.strip{color:var(--mu);font-size:13px;padding:18px 0;border-top:1px solid var(--bd);display:flex;gap:28px;flex-wrap:wrap;font-weight:500}
+.sech{font-size:30px;letter-spacing:-1px;margin:56px 0 8px}.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0}
+.feat .card{margin:0}.feat h3{margin:14px 0 6px;font-size:17px}.foot{color:var(--mu);font-size:13px;padding:40px 0;text-align:center}
+.center{min-height:100vh;display:grid;place-items:center;padding:24px}.auth{width:min(420px,100%)}.auth h2{margin:0 0 4px;font-size:26px;letter-spacing:-.5px}
+.link{color:#60a5fa;cursor:pointer;font-weight:600}.hub{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px}
+.svc{cursor:pointer;margin:0}.svc:hover{transform:translateY(-3px);border-color:rgba(96,165,250,.5)}.svc h3{margin:16px 0 6px;font-size:20px}
+nav .sp{flex:1}
+@media(max-width:800px){.hero{grid-template-columns:1fr}.stack{height:400px}.feat,.hub{grid-template-columns:1fr}.pill{display:none}nav .sp{display:none}}
+.backbtn{padding:8px 14px!important;font-size:13px!important;margin-bottom:16px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:340px;margin:8px 0}
+.cdh{text-align:center;font-size:11px;color:var(--mu);padding:4px 0}
+.cd{all:unset;cursor:pointer;text-align:center;padding:9px 0;border-radius:10px;border:1px solid var(--bd);font-size:13px}
+.cd:hover{border-color:rgba(96,165,250,.6)}.cd.on{background:var(--bl);color:#fff;border-color:transparent;font-weight:600}
+.calbox{margin-top:10px}.calbox .ctl .btn{padding:7px 12px;font-size:12px}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><img src="Logo.png.png" alt="WattWise" onerror="this.style.display='none'">WattWise</div>
+  <button data-p="home" class="on">Overview</button>
+  <button data-p="data">Rooms &amp; devices</button>
+  <button data-p="tips">Tips</button>
+  <button data-p="set">Settings</button>
+  <div class="sp"></div>
+  <button data-p="hub">All services</button>
+  <button data-p="out">Sign out</button>
+</nav>
+<div id="entry"></div>
+<main id="v"></main>
+<script>
+// calculate.js — สูตรคำนวณค่าไฟ WattWise (ข้อ 4 + ตัวช่วยข้อ 6 และ 8)
+// ใช้ได้ทั้ง <script type="module"> และ import ใน React/HTML ธรรมดา
+// หมายเหตุ: ค่าตัวคูณทั้งหมดเป็น "ค่าเริ่มต้นสมมติ" ไม่ใช่ค่าจากงานวิจัย
+// ให้ปรับด้วยข้อมูลจริงจาก Smart Plug (ข้อ 8)
+
+// ตัวคูณ [ต่ำสุด, สูงสุด] ของแอร์ ตามทิศห้อง
+const ORIENTATION_FACTOR = {
+  north: [1.0, 1.05],
+  east:  [1.0, 1.05],
+  south: [1.05, 1.15],
+  west:  [1.1, 1.2],
+};
+
+// ตัวคูณตามอายุแอร์ (ปี) -> [ต่ำสุด, สูงสุด]
+function ageFactor(years) {
+  if (years < 3) return [1.0, 1.0];
+  if (years <= 7) return [1.05, 1.1];
+  return [1.15, 1.25];
+}
+
+// แอร์ไม่ได้กินไฟเต็ม Watt บนฉลากตลอดเวลา (คอมเพรสเซอร์ตัด/ต่อ)
+// duty cycle = สัดส่วนที่ทำงานจริง [ต่ำสุด, สูงสุด] (ค่าสมมติ ให้ปรับด้วยข้อมูลจริง)
+const AC_DUTY_CYCLE = [0.5, 0.8];
+
+// สัดส่วนเวลาที่เครื่องกินไฟจริงตามประเภท [ต่ำสุด, สูงสุด] (ค่าสมมติเริ่มต้น ต้องปรับตามผลวัดจริง)
+const TYPE_DUTY = {
+  ac: AC_DUTY_CYCLE,
+  fridge: [0.3, 0.5],     // คอมเพรสเซอร์ตัด-ต่อ
+  fan: [1, 1],
+  tv: [1, 1],
+  computer: [0.5, 1.0],   // ตอนว่างกับตอนโหลดหนักต่างกัน
+  lighting: [1, 1],
+  heater: [0.3, 0.6],     // เทอร์โมสตัทตัด-ต่อ
+  other: [1, 1],
+};
+
+// ความไม่แน่นอนของชั่วโมงใช้งาน (±20% ถ้าผู้ใช้ไม่ระบุช่วง)
+const HOURS_UNCERTAINTY = 0.2;
+
+function daysInMonth(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+}
+
+// ตัวคูณสึกหรอของเครื่องทั่วไปตามอายุ [ต่ำสุด, สูงสุด] (ค่าสมมติ) ถ้าไม่ทราบอายุ = ช่วงกว้างขึ้น
+function applianceAgeFactor(years) {
+  if (years == null || Number.isNaN(years)) return [1.0, 1.15];
+  if (years < 5) return [1.0, 1.0];
+  if (years <= 10) return [1.0, 1.1];
+  return [1.05, 1.25];
+}
+
+// ตัวคูณตามสภาพเครื่อง (ค่าสมมติ): ไม่ระบุ = normal
+const CONDITION_FACTOR = {
+  new:    [1.0, 1.0],
+  normal: [1.0, 1.05],
+  old:    [1.1, 1.3],   // เก่า/สกปรก/ซีลเสื่อม
+  faulty: [1.3, 1.6],   // มีอาการผิดปกติ เช่น ทำงานไม่หยุด ไม่ค่อยเย็น
+};
+
+/**
+ * คำนวณต่อเครื่อง
+ * appliance = {
+ *   name, type: 'ac' | 'other', watts, hoursPerDay,
+ *   hoursMin?, hoursMax?,
+ *   ageYears?,                      // ไม่ทราบ = เว้นว่าง
+ *   condition?: 'new'|'normal'|'old'|'faulty',
+ *   measuredWatts?,                 // วัตต์ที่วัดจริง (ถ้ามี จะไม่คูณตัวสึกหรอซ้ำ)
+ *   orientation?                    // ใช้เฉพาะแอร์
+ * }
+ */
+function estimateAppliance(appliance, ratePerKwh) {
+  const { hoursPerDay, type } = appliance;
+  const measured = appliance.measuredWatts > 0;
+  const watts = measured ? appliance.measuredWatts : appliance.watts;
+  const hMin = appliance.hoursMin ?? hoursPerDay * (1 - HOURS_UNCERTAINTY);
+  const hMax = appliance.hoursMax ?? hoursPerDay * (1 + HOURS_UNCERTAINTY);
+
+  // แต่ละแหล่งความไม่แน่นอน = ช่วง [ต่ำ, สูง]
+  const duty = TYPE_DUTY[type] ?? [1, 1];
+  const factors = [duty];
+  if (type === 'ac') factors.push(ORIENTATION_FACTOR[appliance.orientation] ?? [1.0, 1.1]);
+  if (!measured) {
+    factors.push(type === 'ac' && appliance.ageYears != null
+      ? ageFactor(appliance.ageYears) : applianceAgeFactor(appliance.ageYears));
+    factors.push(CONDITION_FACTOR[appliance.condition] ?? CONDITION_FACTOR.normal);
+  }
+
+  // ค่ากลาง = ชั่วโมงกลาง x ค่ากลางของทุกตัวคูณ
+  const mid = (f) => (f[0] + f[1]) / 2;
+  const expKwh = (watts * hoursPerDay * factors.reduce((p, f) => p * mid(f), 1)) / 1000;
+
+  // ช่วงที่น่าจะเป็น: รวมความไม่แน่นอนแบบอิสระ (root-sum-square) ไม่ใช่เอาค่าแย่สุด/ดีสุดมาคูณพร้อมกัน
+  // (ประมาณการเชิงฮิวริสติก ไม่ใช่ช่วงความเชื่อมั่นทางสถิติ)
+  const rel = (f) => (f[1] - f[0]) / (f[1] + f[0]);
+  const w = Math.sqrt([[hMin, hMax], ...factors].reduce((s, f) => s + rel(f) ** 2, 0));
+  const kwhDay = { min: expKwh * (1 - w), expected: expKwh, max: expKwh * (1 + w) };
+  const costDay = {
+    min: kwhDay.min * ratePerKwh,
+    expected: kwhDay.expected * ratePerKwh,
+    max: kwhDay.max * ratePerKwh,
+  };
+  return { name: appliance.name, kwhDay, costDay };
+}
+
+/**
+ * คำนวณรวมทั้งห้อง ทั้งเดือน
+ * คืน { perAppliance, daily: {min,expected,max}, monthly: {min,expected,max} }
+ * calibrationFactor: ตัวปรับจากข้อ 8 (ค่าเริ่มต้น 1)
+ */
+function estimateRoom(appliances, ratePerKwh, days = daysInMonth(), calibrationFactor = 1) {
+  const perAppliance = appliances.map((a) => estimateAppliance(a, ratePerKwh));
+  const sum = (key) =>
+    perAppliance.reduce((s, r) => s + r.costDay[key], 0) * calibrationFactor;
+
+  const exp = sum('expected');
+  const sd = Math.sqrt(perAppliance.reduce((s, r) => s + ((r.costDay.max - r.costDay.min) / 2) ** 2, 0)) * calibrationFactor;
+  const daily = { min: Math.max(0, exp - sd), expected: exp, max: exp + sd };
+  const monthly = {
+    min: daily.min * days,
+    expected: daily.expected * days,
+    max: daily.max * days,
+  };
+  return { perAppliance, daily, monthly };
+}
+
+// ---------- ข้อ 6: งบรายวัน + แจ้งเตือน ----------
+function dailyBudget(monthlyBudget, date = new Date()) {
+  return monthlyBudget / daysInMonth(date);
+}
+
+// คืน null ถ้ายังไม่เกิน, คืนข้อความถ้าเกิน
+function checkBudgetAlert(todayCost, monthlyBudget, date = new Date()) {
+  const limit = dailyBudget(monthlyBudget, date);
+  if (todayCost <= limit) return null;
+  return `Used ${todayCost.toFixed(0)} THB today (over the daily budget of ${limit.toFixed(2)} THB)`;
+}
+
+// ---------- ข้อ 8: Calibrate ----------
+// measuredKwh = ค่าจริงจาก Smart Plug, estimatedKwh = ค่าที่สูตรคำนวณ
+// ใช้เฉลี่ยหลายวันจะนิ่งกว่าวันเดียว
+function calibrationFactor(measuredKwh, estimatedKwh) {
+  if (!estimatedKwh) return 1;
+  return measuredKwh / estimatedKwh;
+}
+
+// ---------- รับค่าวัตต์จาก ESP32 ----------
+// prev/next = {t: เวลา(ms), w: วัตต์}  คืนค่า kWh ระหว่างสองจุด (ค่าเฉลี่ยของสองจุด × เวลา)
+// ถ้าห่างกันเกิน maxGapSec (อุปกรณ์หลุดออฟไลน์) จะนับแค่ maxGapSec เพื่อไม่เกินจริง
+function kwhStep(prev, next, maxGapSec = 600) {
+  const dt = (next.t - prev.t) / 1000;
+  if (!(dt > 0)) return 0;
+  return (((prev.w + next.w) / 2) * Math.min(dt, maxGapSec)) / 3600 / 1000;
+}
+
+// รวม kWh จากรายการ samples [{t, w}, ...] เรียงตามเวลา
+function kwhFromSamples(samples, maxGapSec = 600) {
+  let kwh = 0;
+  for (let i = 1; i < samples.length; i++) kwh += kwhStep(samples[i - 1], samples[i], maxGapSec);
+  return kwh;
+}
+
+const KEY='wattwise-v1',O={north:'North',east:'East',south:'South',west:'West'};
+const def={room:{orientation:'west',ageYears:5},budget:3000,rate:4.18,items:[]};
+let S;try{S=JSON.parse(localStorage.getItem(KEY))||structuredClone(def)}catch{S=structuredClone(def)}
+S.log=S.log||{};S.cloud=S.cloud||{url:'',room:'room1',token:'',on:false};S.user=S.user||null;if(!S.v){S.items=(S.items||[]).filter(i=>i.id||i.manual);S.v=2}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch{}};
+const $=s=>document.querySelector(s),B=n=>'฿'+Math.round(n).toLocaleString('th-TH');
+let page='home';
+const calc=()=>estimateRoom(S.items.map(i=>({...i,orientation:S.room.orientation,ageYears:i.ageYears??(i.type=='ac'?S.room.ageYears:undefined)})),S.rate,daysInMonth());
+
+let view=new Date();view.setDate(1);let sel=null;
+const CL={new:'New',normal:'Normal',old:'Old',faulty:'Faulty'};
+const PAL=['#1a5cff','#14b8a6','#f59e0b','#a855f7','#ec4899','#64748b','#84cc16','#f97316'];
+const ymd=(y,m,d)=>`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+const tot=v=>typeof v=='object'?Object.values(v).reduce((a,b)=>a+b,0):v;
+function parts(v,r){const D=dv();if(v&&typeof v=='object')return D.map(i=>v[i.name]||0);
+ const e=r.perAppliance.filter((_,k)=>D.includes(S.items[k])).map(a=>a.costDay.expected),t=e.reduce((a,b)=>a+b,0)||1;return e.map(x=>v*x/t)}
+function chart(r,now,_l){const y=view.getFullYear(),m=view.getMonth(),n=daysInMonth(view),lim=dailyBudget(S.budget,view),
+ cur=y==now.getFullYear()&&m==now.getMonth(),past=new Date(y,m,1)<new Date(now.getFullYear(),now.getMonth(),1),d0=cur?now.getDate():0;
+ const vals=[];for(let d=1;d<=n;d++)vals.push(S.log[ymd(y,m,d)]);
+ const T=vals.map(v=>v==null?null:tot(v)),lo=T.filter(v=>v!=null),sum=lo.reduce((a,b)=>a+b,0),avg=lo.length?sum/lo.length:null;
+ const mx=Math.max(lim*1.6,r.daily.max,...lo)||1,by=dv().map(()=>0);
+ const bars=vals.map((v,i)=>{const d=i+1;let inner='',c='stk',tt='Day '+d+': no data',h=2;
+  if(v!=null){const p=parts(v,r),t=T[i];p.forEach((x,k)=>by[k]+=x);h=t/mx*100;if(t>lim)c+=' over';
+   inner=p.map((x,k)=>`<div class="seg" style="height:${t?x/t*100:0}%;background:${PAL[k%PAL.length]}"></div>`).join('');tt='Day '+d+': '+B(t)}
+  else if(cur&&d<=d0){h=r.daily.expected/mx*100;inner='<div class="seg" style="height:100%;background:#1a5cff33"></div>'}
+  else c+=' fut';
+  return `<div class="col" data-d="${d}"><div class="${c}${cur&&d==d0?' today':''}${sel==d?' sel':''}" style="height:${Math.max(h,2)}%" title="${tt}">${inner}</div></div>`}).join('');
+ const lab=vals.map((_,i)=>`<span>${(i+1)%5==0||i==0?i+1:''}</span>`).join('');
+ const leg=dv().map((it,k)=>`<span><i style="background:${PAL[k%PAL.length]}"></i>${it.name} ${B(by[k])}</span>`).join('');
+ let det='';if(sel&&vals[sel-1]!=null){const p=parts(vals[sel-1],r);det=`<div style="margin-top:10px"><b>Day ${sel}: ${B(T[sel-1])}</b> <span class="mu">(target ${lim.toFixed(0)}) — ${dv().map((it,k)=>it.name+' '+B(p[k])).join(' · ')}</span></div>`}
+ const sm=avg==null?'No measured data this month yet':`Total ${B(sum)} over ${lo.length} days · average ${avg.toFixed(0)} THB/day — ${avg<=lim?'on target ✓':'over target, try to cut back'}`;
+ return `<div class="card"><div class="row"><div class="ctl" style="margin:0"><button class="btn g" id="pv">‹</button><b>${view.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</b><button class="btn g" id="nx">›</button></div><span class="mu">Target ${lim.toFixed(0)} THB/day</span></div>
+ <div class="plot"><div class="lim" style="bottom:${lim/mx*100}%"></div>${bars}</div><div class="lab">${lab}</div>
+ <div class="lg">${leg}<span><i style="background:#1a5cff33"></i>Not logged (estimate)</span><span><i style="background:var(--tl)"></i>Daily budget line</span><span><i style="background:var(--rd)"></i>Red mark = over budget</span></div>
+ ${det}<div class="mu" style="margin-top:10px">${sm}</div>
+ ${S.cloud.on?'<div class="mu" style="margin-top:12px">Daily data comes from the ESP32 board via Firebase automatically. No manual entry needed.</div>':`<details style="margin-top:14px"><summary class="mu" style="cursor:pointer">Test tools (use before the board is connected)</summary><div class="ctl">${cur?'<input id="lg" type="number" min="0" placeholder="Cost today (THB)"><button class="btn" id="lgb">Log today</button>':''}${cur||past?'<button class="btn g" id="smp">Generate sample data</button>':''}${cur?'<button class="btn g" id="sim">Simulate ESP32 data</button>':''}<button class="btn g" id="clr">Clear this month</button></div></details>`}</div>`}
+let live={},timer=null,cstat='Not connected',pc=0;
+const ensure=name=>{if(!S.items.some(i=>i.name==name))S.items.push({name,type:'other',watts:0,hoursPerDay:0})};
+function addKwh(name,kwh,t){if(!(kwh>0))return;const d=new Date(t),key=ymd(d.getFullYear(),d.getMonth(),d.getDate());let v=S.log[key];
+ if(v==null||typeof v!='object')v=S.log[key]=(typeof v=='number'?{__other:v}:{});v[name]=(v[name]||0)+kwh*S.rate}
+function applyReading(name,w,t=Date.now()){S.last=S.last||{};const p=S.last[name];S.last[name]={t,w};ensure(name);if(p)addKwh(name,kwhStep(p,{t,w}),t);save()}
+function ingestCloud(key,v){const nm=v.name||key;let it=S.items.find(i=>i.id==key)||S.items.find(i=>!i.id&&!i.manual&&i.name==nm);
+ if(!it){let n2=nm;if(S.items.some(i=>i.name==n2))n2=nm+' ('+key+')';it={id:key,name:n2,type:guessType(key+' '+nm),watts:0,hoursPerDay:0};S.items.push(it)}
+ it.id=key;const name=it.name;let t=v.ts;if(!t)t=Date.now();else if(t<1e12)t*=1000;live[name]={w:v.watts,t};
+ if(typeof v.kwh_total=='number'){S.ktot=S.ktot||{};const p=S.ktot[name];S.ktot[name]=v.kwh_total;if(p!=null&&v.kwh_total>=p)addKwh(name,v.kwh_total-p,t)}
+ else{S.last=S.last||{};const p=S.last[name];if(!p||t>p.t){S.last[name]={t,w:v.watts};if(p)addKwh(name,kwhStep(p,{t,w:v.watts}),t)}}}
+const cloudUrl=()=>{const c=S.cloud;return c.url.replace(/\/+$/,'')+'/rooms/'+encodeURIComponent(c.room)+'/devices.json'+(c.token?'?auth='+encodeURIComponent(c.token):'')};
+function liveHTML(){const ns=Object.keys(live),on=n=>Date.now()-live[n].t<120000;
+ if(!ns.length)return `<b>Live now</b><div class="mu">${S.cloud.on?'Waiting for ESP32…':'Not connected to the cloud (see Rooms & devices)'}</div>`;
+ const total=ns.reduce((s,n)=>s+(on(n)?live[n].w:0),0);
+ return `<div class="row"><b>Live now</b><span class="chip">● Live</span></div><div class="big">${Math.round(total)} W</div>`+
+ ns.map(n=>`<div class="item row"><span>${n}</span><span>${on(n)?Math.round(live[n].w)+' W':'<span class="mu">Offline</span>'}</span></div>`).join('')}
+function paint(){const e=$('#live');if(e)e.innerHTML=liveHTML();const s=$('#cst');if(s)s.textContent=cstat}
+async function poll(){try{const r=await fetch(cloudUrl());if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();
+ if(d)for(const[k,v]of Object.entries(d))if(v&&typeof v.watts=='number')ingestCloud(k,v);
+ cstat='Connected · updated '+new Date().toLocaleTimeString('en-US');save();
+ if(page=='home'&&screen=='app'&&(++pc%6==0||(document.querySelector('#empty')&&monthReal(new Date(),calc())))&&!document.activeElement?.matches?.('input,select'))render();else paint()}
+ catch(e){cstat='Connection failed: '+e.message;paint()}}
+function stopCloud(){if(timer){clearInterval(timer);timer=null}live={};cstat='Not connected'}
+function startCloud(){stopCloud();if(!S.cloud.on||!S.cloud.url)return;cstat='Connecting…';poll();timer=setInterval(poll,5000)}
+window.WattWise={ingest:applyReading};
+function monthReal(now,r){const y=now.getFullYear(),m=now.getMonth(),d=now.getDate(),n=daysInMonth(now),done=[];let sum=0,has=false;
+ for(let i=1;i<=d;i++){const v=S.log[ymd(y,m,i)];if(v!=null){has=true;const t=tot(v);sum+=t;if(i<d)done.push(t)}}
+ if(!has)return null;const left=n-d,fr=Math.max((now.getHours()*60+now.getMinutes())/1440,0.1),avg=done.length?done.reduce((a,b)=>a+b,0)/done.length:sum/fr;
+ const mn=done.length?Math.min(...done):avg,mx=done.length?Math.max(...done):avg;
+ return{sum,M:{min:sum+mn*left,expected:sum+avg*left,max:sum+mx*left}}}
+let whatOpen=false,wmon=null,calOpen=null,calDraft=[];
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const guessType=s=>/air|aircon|\bac\b|แอร์/i.test(s)?'ac':/fridge|refrigerator|freezer|ตู้เย็น/i.test(s)?'fridge':/\bfan\b|พัดลม/i.test(s)?'fan':/\btv\b|monitor|television|โทรทัศน์/i.test(s)?'tv':/laptop|computer|\bpc\b|คอม/i.test(s)?'computer':/light|lamp|bulb|หลอด/i.test(s)?'lighting':/heater|kettle|boiler|กาน้ำ/i.test(s)?'heater':'other';
+const dv=()=>{const a=S.items.filter(i=>!i.manual);return a.length?a:S.items};
+function renameDevice(it,nn){nn=(nn||'').trim();if(!nn||nn==it.name)return;
+ if(S.items.some(i=>i!==it&&i.name==nn)){alert('That name already exists');return}
+ const o=it.name;for(const k in S.log){const v=S.log[k];if(v&&typeof v=='object'&&o in v){v[nn]=(v[nn]||0)+v[o];delete v[o]}}
+ for(const m of [S.last,S.ktot])if(m&&o in m){m[nn]=m[o];delete m[o]}
+ if(live[o]){live[nn]=live[o];delete live[o]}it.name=nn;save()}
+function realByDevice(now){const y=now.getFullYear(),m=now.getMonth(),by={};
+ for(let d=1;d<=daysInMonth(now);d++){const v=S.log[ymd(y,m,d)];if(v&&typeof v=='object')for(const[k,x]of Object.entries(v))by[k]=(by[k]||0)+x}return by}
+const ICO={wallet:'<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
+ zap:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+ target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',trend:'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+ award:'<circle cx="12" cy="8" r="7"/><polyline points="8.2 13.9 7 23 12 20 17 23 15.8 13.9"/>'};
+const ic=n=>`<span class="ico"><svg viewBox="0 0 24 24">${ICO[n]}</svg></span>`;
+function appCard(r,now){const n=daysInMonth(now),by=realByDevice(now),ks=Object.keys(by),real=ks.length>0,ty=k=>TYPES[(S.items.find(i=>i.name==k)||{}).type]||'Other';if(!real)return '<div class="card"><div class="mu">Per-appliance costs appear once the board reports each appliance.</div></div>';let rows;
+ if(real){const t=Object.values(by).reduce((a,b)=>a+b,0)||1;rows=ks.sort((a,b)=>by[b]-by[a]).map(k=>[k=='__other'?'Other':k,ty(k),B(by[k]),by[k]/t*100])}
+ else{const t=r.monthly.expected||1;rows=r.perAppliance.map((a,i)=>[a.name,TYPES[S.items[i].type]||'Other',B(a.costDay.min*n)+'–'+B(a.costDay.max*n),a.costDay.expected*n/t*100])}
+ return `<div class="card"><div class="mu" style="margin-bottom:8px">${real?'Measured cost this month':'Monthly estimate (no measured data yet)'}</div><table class="tbl"><thead><tr><th>Appliance</th><th>Type</th><th>Cost</th><th style="width:30%">Share</th></tr></thead><tbody>`+
+ rows.map(([a,b,c,p])=>`<tr><td>${a}</td><td class="mu">${b}</td><td>${c}</td><td><div class="bar sm"><b style="width:${p}%"></b></div><span class="mu">${p.toFixed(0)}%</span></td></tr>`).join('')+`</tbody></table></div>`}
+let screen=S.user?'hub':'landing',signup=false;
+const bars=()=>{const v=[38,52,46,60,68,50,44,64,56,72,58,48,66,54],lim=58;return `<svg viewBox="0 0 300 90" width="100%">${v.map((x,i)=>`<rect x="${i*21+4}" y="${90-x}" width="14" height="${x}" rx="3" fill="${x>lim?'#f43f5e':'#3b82f6'}"/>`).join('')}<line x1="0" x2="300" y1="${90-lim}" y2="${90-lim}" stroke="#10b981" stroke-dasharray="5 4" stroke-width="2"/></svg>`};
+const area=()=>{const s=[70,64,58,54,46,42,36],f=[36,32,28,24],P=a=>a.map((y,i)=>[i*22+6,y+6]);const A=P(s),B2=P(s.slice(-1).concat(f)).map(([x,y],i)=>[x+6*22,y]);
+ return `<svg viewBox="0 0 280 90" width="100%"><polygon points="${A.map(p=>p.join(',')).join(' ')} ${A[6][0]},90 6,90" fill="rgba(59,130,246,.18)"/><polyline points="${A.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#60a5fa" stroke-width="2.5"/><polyline points="${B2.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4 4" opacity=".7"/></svg>`};
+const donut=`<svg viewBox="0 0 100 100" width="104"><circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/><circle cx="50" cy="50" r="38" fill="none" stroke="#3b82f6" stroke-width="10" stroke-linecap="round" stroke-dasharray="148 239" transform="rotate(-90 50 50)"/><text x="50" y="56" text-anchor="middle" fill="#fff" font-size="19" font-weight="700">62%</text></svg>`;
+const logo=`<div class="brand"><img src="logo.png" alt="" onerror="this.style.display='none'">WattWise</div>`;
+const entry={
+landing:()=>`<div class="wrap"><div class="top">${logo}<div class="pill"><a data-s="feat">Features</a><a data-s="how">How it works</a><a data-s="hw">Hardware</a></div><button class="btn" data-go="login">Sign in</button></div>
+ <section class="hero"><div><h1>Know your <span class="hl2">electricity bill</span> before it arrives.</h1><p class="lead">WattWise measures each appliance in your room, tracks daily use against your budget, and coaches you to spend less.</p>
+ <div class="btns"><button class="btn" data-go="login">Get started</button><button class="btn o" data-s="how">How it works</button></div></div>
+ <div class="stack"><div class="mini" style="top:0;right:0;width:80%"><h4>Daily usage</h4><small>Cost per day vs budget</small>${bars()}</div>
+ <div class="mini" style="top:170px;left:0;width:58%"><h4>This month</h4><div class="n">฿1,482</div><small>vs ฿1,640 budget · forecast dashed</small>${area()}</div>
+ <div class="mini" style="top:230px;right:0;width:46%;display:flex;gap:10px;align-items:center">${donut}<div><h4>Budget used</h4><small>AC · Fridge · Other</small></div></div>
+ <div class="mu" style="position:absolute;bottom:0;left:0;font-size:11px">Sample data for illustration</div></div></section>
+ <div class="strip"><span>Works with</span><span>ESP32</span><span>PZEM-004T</span><span>Firebase</span><span>Installable PWA</span></div>
+ <h2 class="sech" id="feat">Built for dorm-room budgets</h2><div class="feat">
+ <div class="card">${ic('zap')}<h3>Measured, not guessed</h3><p class="mu">A PZEM-004T meter on each plug reports real watts and kWh to the cloud.</p></div>
+ <div class="card">${ic('target')}<h3>Warns before you overspend</h3><p class="mu">Your monthly budget becomes a daily target, with alerts and a month-end forecast.</p></div>
+ <div class="card">${ic('award')}<h3>Tips that follow your habits</h3><p class="mu">Advice updates from your real usage: top consumers, weekly change, AC share.</p></div></div>
+ <h2 class="sech" id="how">How it works</h2><div class="feat">
+ <div class="card"><b>1 · Plug in the meter</b><p class="mu">One ESP32 + PZEM per appliance.</p></div><div class="card"><b>2 · Connect to the cloud</b><p class="mu">Paste your database URL and room ID.</p></div><div class="card"><b>3 · Watch and save</b><p class="mu">Track usage live and follow the tips.</p></div></div>
+ <h2 class="sech" id="hw">Hardware</h2><p class="mu">ESP32 + PZEM-004T v3.0 with a CT clamp, uploading to Firebase Realtime Database. No board yet? Use the estimate mode to try the app.</p>
+ <div class="foot">WattWise · EE299 project</div></div>`,
+login:()=>`<div class="center"><div class="auth card"><div style="margin-bottom:18px">${logo}</div><h2>${signup?'Create your account':'Sign in to WattWise'}</h2><p class="mu" style="margin:0 0 8px">${signup?'Start tracking your room in minutes.':'Welcome back.'}</p>
+ ${signup?'<label>Name</label><input id="nm" placeholder="Your name">':''}<label>Email</label><input id="em" type="email" placeholder="you@example.com"><label>Password</label><input id="pw" type="password" placeholder="••••••••">
+ <div class="mu" id="er" style="color:#fda4af;margin-top:8px"></div><button class="btn" id="li" style="width:100%;margin-top:14px">${signup?'Create account':'Sign in'}</button>
+ <p class="mu" style="text-align:center;margin:16px 0 0">${signup?'Have an account?':'New here?'} <span class="link" id="tg">${signup?'Sign in':'Create account'}</span> · <span class="link" data-go="landing">Back</span></p>
+ <p class="mu" style="font-size:11px;text-align:center;margin:12px 0 0">Demo sign-in: your details stay in this browser only.</p></div></div>`,
+hub:()=>{const on=S.cloud.on,live_=Object.keys(live).length,st=on&&live_?'Board connected':on?'Connecting…':'Board not connected',
+ C=(i,t,x,k,c)=>`<div class="card svc" data-svc="${k}">${ic(i)}<h3>${t}</h3><p class="mu">${x}</p><span class="chip">${c}</span></div>`;
+ return `<div class="wrap"><div class="top">${logo}<button class="btn g" data-go="landing" id="so">Sign out</button></div>
+ <div class="eyebrow" style="margin-top:28px">Services</div><h1 style="font-size:40px">Hi, ${esc(S.user.name)}</h1><p class="sub">What would you like to do today?</p>
+ <div class="hub">${C('wallet','Estimate my bill','Predict your monthly bill from room and appliance details, with a min–max range. Try what-if appliances.','est','No board needed')}
+ ${C('trend','Track my usage','Live watts, daily cost vs budget, month-end forecast.','trk',st)}${C('award','Saving tips','Advice that updates from your real usage.','tip','Updates daily')}
+ ${C('zap','Connect board & devices','Link your ESP32 meters via Firebase and name your appliances.','con',st)}</div></div>`}};
+function bindEntry(s){
+ document.querySelectorAll('[data-go]').forEach(e=>e.onclick=()=>{if(e.id=='so'){S.user=null;save();hist=[]}signup=false;go(e.dataset.go)});
+ document.querySelectorAll('[data-s]').forEach(e=>e.onclick=()=>{const t=document.getElementById(e.dataset.s);if(t)t.scrollIntoView({behavior:'smooth'})});
+ if(s=='login'){$('#tg').onclick=()=>{signup=!signup;go('login')};
+  $('#li').onclick=()=>{const em=$('#em').value.trim(),pw=$('#pw').value,nm=signup?$('#nm').value.trim():'';
+   if(!/^\S+@\S+\.\S+$/.test(em))return $('#er').textContent='Enter a valid email.';if(pw.length<4)return $('#er').textContent='Password must be at least 4 characters.';
+   S.user={email:em,name:nm||(S.user&&S.user.name)||em.split('@')[0]};save();hist=[];go('hub',true)}}
+ if(s=='hub')document.querySelectorAll('[data-svc]').forEach(e=>e.onclick=()=>{const k=e.dataset.svc;page={est:'data',trk:'home',tip:'tips',con:'data'}[k];whatOpen=k=='est';go('app')})}
+let hist=[],hs=true;
+function push(){hist.push({s:screen,p:page});try{history.pushState(null,'')}catch(e){hs=false}}
+function back(){const t=hist.pop();if(t){page=t.p;go(t.s,true)}else go(S.user?'hub':'landing',true)}
+window.addEventListener('popstate',()=>back());
+function go(s,np){if(!np&&s!=screen)push();screen=s;document.body.classList.toggle('app',s=='app');if(s=='app')render();else{$('#entry').innerHTML=entry[s]();bindEntry(s)}window.scrollTo(0,0)}
+const DEMO=[{id:'demo-aircon',name:'Air conditioner',type:'ac',watts:900,hoursPerDay:8,demo:true},{id:'demo-fridge',name:'Fridge',type:'other',watts:100,hoursPerDay:8,demo:true},{id:'demo-computer',name:'Computer',type:'other',watts:150,hoursPerDay:5,demo:true}];
+const TYPES={ac:'Air conditioner',fridge:'Refrigerator',fan:'Fan',tv:'TV / monitor',computer:'Computer / laptop',lighting:'Lighting',heater:'Water heater / kettle',other:'Other'};
+const typeOpts=sel=>Object.entries(TYPES).map(([k,v])=>`<option value="${k}" ${k==sel?'selected':''}>${v}</option>`).join('');
+const wm=()=>{const n=new Date(),ym=wmon||(n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')),[y,m]=ym.split('-').map(Number);return{ym,y,m,dm:new Date(y,m,0).getDate()}};
+function calHTML(ym,days,ctx){const[y,m]=ym.split('-').map(Number),dm=new Date(y,m,0).getDate(),off=new Date(y,m-1,1).getDay();
+ return `<div class="calbox"><div class="mu" style="margin:6px 0">Tap the days used in ${new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})} · <b>${days.length} of ${dm}</b> selected</div>
+ <div class="cal">${['S','M','T','W','T','F','S'].map(x=>`<span class="cdh">${x}</span>`).join('')}${'<span></span>'.repeat(off)}${Array.from({length:dm},(_,i)=>i+1).map(d=>`<button class="cd ${days.includes(d)?'on':''}" data-cd="${d}" data-ctx="${ctx}">${d}</button>`).join('')}</div>
+ <div class="ctl"><button class="btn g" data-cq="all" data-ctx="${ctx}">All days</button><button class="btn g" data-cq="wk" data-ctx="${ctx}">Weekdays</button><button class="btn g" data-cq="we" data-ctx="${ctx}">Weekends</button><button class="btn g" data-cq="clr" data-ctx="${ctx}">Clear</button></div></div>`}
+const calArr=ctx=>ctx==='new'?calDraft:(S.items[+ctx]||{}).daysByMonth&&S.items[+ctx].daysByMonth[wm().ym];
+function calSet(ctx,a){if(ctx==='new')calDraft=a;else{const it=S.items[+ctx];it.daysByMonth=it.daysByMonth||{};it.daysByMonth[wm().ym]=a}save()}
+function calToggle(ctx,d){const a=(calArr(ctx)||[]).slice(),i=a.indexOf(d);if(i>=0)a.splice(i,1);else a.push(d);calSet(ctx,a.sort((p,q)=>p-q))}
+function calQuick(ctx,q){const c=wm(),all=Array.from({length:c.dm},(_,i)=>i+1),wd=d=>new Date(c.y,c.m-1,d).getDay();
+ calSet(ctx,q=='all'?all:q=='wk'?all.filter(d=>wd(d)>=1&&wd(d)<=5):q=='we'?all.filter(d=>wd(d)==0||wd(d)==6):[])}
+const pages={
+home(){const r=calc(),now=new Date(),d=now.getDate(),n=daysInMonth(now),y=now.getFullYear(),m=now.getMonth(),
+ R=monthReal(now,r),spent=R?R.sum:r.daily.expected*d,M=R?R.M:r.monthly,lim=dailyBudget(S.budget,now),pct=Math.min(100,spent/S.budget*100),
+ dv=k=>{const v=S.log[ymd(y,m,k)];return v==null?null:tot(v)},today=dv(d)??(R?null:r.daily.expected),yest=d>1?dv(d-1):null,done=[];
+ for(let i=1;i<d;i++){const v=dv(i);if(v!=null)done.push(v)}
+ const avg=done.length?done.reduce((a,b)=>a+b,0)/done.length:null,ok=done.filter(v=>v<=lim).length,al=today!=null&&today>lim,
+ mon=now.toLocaleDateString('en-US',{month:'long',year:'numeric'}),src=R?'Measured':'Estimated',
+ dl=(v,ref)=>`<span class="delta ${v<=ref?'dn':'up'}">${v<=ref?'▼ Under target':'▲ Over target'} ${Math.abs(v-ref).toFixed(0)}</span>`,
+ K=(i,t,s,v,c='')=>`<div class="kpi ${c}">${ic(i)}<div><b>${t}</b><small>${s}</small></div><span class="v">${v}</span></div>`;
+ if(!R)return `<div class="eyebrow">Overview</div><h1>Energy dashboard | ${mon}</h1><div class="meta">${cstat}</div>
+ <div class="card" id="empty"><div class="row" style="align-items:flex-start;gap:16px"><div><b>No measured data yet</b><p class="mu" style="margin:6px 0 0">${S.cloud.on?'Connected. Waiting for readings from your ESP32 board…':'Connect your ESP32 board and your usage, forecast and charts will appear here automatically.'}</p></div>${S.cloud.on?'':'<button class="btn" id="gc">Connect board</button>'}</div></div>
+ <div class="card" id="live">${liveHTML()}</div>`;
+ return `<div class="eyebrow">Overview</div><h1>Energy dashboard | ${mon}</h1>
+ <div class="meta">${R?'Measured data from ESP32':'Formula estimate (no measured data yet)'} | ${cstat}</div>
+ <div class="alert ${al?'':'ok'}">${al?'⚠️ Over budget today: '+B(today)+' (budget '+lim.toFixed(2)+' THB/day)':'✓ '+(today==null?'No data for today yet':'Today '+B(today)+' is within the '+lim.toFixed(2)+' THB/day budget')}</div>
+ <h2 class="sec">Today at a glance</h2><p class="secd">Key indicators for usage and budget right now</p>
+ <div class="kpis">${K('wallet','Spent today',src,today==null?'—':B(today),'hl')}${K('target','Daily budget','Target',B(lim))}${K('cal','Spent this month',pct.toFixed(0)+'% of '+B(S.budget)+' budget',B(spent))}
+ ${K('trend','Month-end forecast',B(M.min)+'–'+B(M.max),B(M.expected))}${K('zap','Budget remaining',(n-d)+' days left',B(Math.max(0,S.budget-spent)))}${K('award','Days within budget','Monthly achievement',done.length?ok+'/'+done.length:'—')}</div>
+ <div class="card" id="live">${liveHTML()}</div>
+ <h2 class="sec">Compared with target</h2><p class="secd">Daily cost vs the average you should spend (monthly budget ÷ days)</p>
+ <div class="card"><div class="row"><div class="kpi" style="border:0;padding:0;background:none;backdrop-filter:none">${ic('trend')}<div><b>Daily cost</b><small>${src}</small></div></div><div class="big">${today==null?'—':B(today)}</div></div>
+ <div class="crow"><span class="mu">Target (budget/day)</span><span>${B(lim)}</span></div>
+ <div class="crow"><span class="mu">Month average</span><span>${avg==null?'—':B(avg)+dl(avg,lim)}</span></div>
+ <div class="crow"><span class="mu">Yesterday</span><span>${yest==null?'—':B(yest)+dl(yest,lim)}</span></div></div>
+ <h2 class="sec">Daily trend</h2><p class="secd">Stacked bars by appliance. Dashed line = daily budget. Tap a bar for details.</p>${chart(r,now,lim)}
+ <h2 class="sec">Cost by appliance</h2><p class="secd">Biggest consumers first</p>${appCard(r,now)}`},
+
+data(){const dev=S.items.map((it,i)=>[it,i]).filter(([it])=>!it.manual),man=S.items.map((it,i)=>[it,i]).filter(([it])=>it.manual),ym=wmon||(new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0')),[wy,wmn]=ym.split('-').map(Number),dm=new Date(wy,wmn,0).getDate(),mlabel=new Date(wy,wmn-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}),dd=it=>{const a=(it.daysByMonth||{})[ym];return a?a.filter(x=>x<=dm).length:Math.min(it.daysUsed||dm,dm)},
+ CND={new:'New',normal:'Normal',old:'Old',faulty:'Faulty'},
+ est=it=>estimateAppliance({...it,orientation:S.room.orientation,ageYears:it.ageYears??(it.type=='ac'?S.room.ageYears:undefined)},S.rate).costDay;
+ return `<div class="eyebrow">System setup</div><h1>Rooms &amp; devices</h1><p class="sub">Connect your ESP32 meters, name your appliances, and set room details.</p>
+ <div class="card"><b>Cloud connection (Firebase Realtime Database)</b><div class="mu">The ESP32 writes to /rooms/{Room ID}/devices/{device ID}. The app reads it to show and track usage.</div>
+ <label>Database URL</label><input id="cu" value="${esc(S.cloud.url)}" placeholder="https://xxxx-default-rtdb.firebaseio.com">
+ <div class="grid"><div><label>Room ID</label><input id="cr" value="${esc(S.cloud.room)}"></div><div><label>Auth token (optional)</label><input id="ct" value="${esc(S.cloud.token)}"></div></div>
+ <div class="ctl"><button class="btn" id="cc">Connect</button><button class="btn g" id="cx">Disconnect</button></div><div class="mu" id="cst" style="margin-top:8px">${cstat}</div></div>
+ <div class="card"><b>Devices from the board</b><div class="mu">Devices appear automatically once the board sends data. You can only edit the name and type.</div>
+ ${dev.length?dev.map(([it,i])=>{const L=live[it.name],on=L&&Date.now()-L.t<120000;return `<div class="item row" style="flex-wrap:wrap"><div style="flex:1;min-width:160px"><small class="mu">ID: ${esc(it.id||'—')}${it.demo?' (demo)':''}</small><input class="dn" data-i="${i}" value="${esc(it.name)}"></div>
+ <select class="dt" data-i="${i}" style="width:auto">${typeOpts(it.type)}</select>
+ <span class="mu">${on?Math.round(L.w)+' W':'No live data'}</span></div>`}).join(''):'<div class="mu" style="margin-top:10px">No devices from the board yet</div>'}</div>
+ <div class="card"><b>Room details</b><div class="mu">Used for estimates before measured data exists, and for tips.</div><div class="grid"><div><label>Room orientation</label><select id="ori">${Object.entries(O).map(([k,v])=>`<option value="${k}" ${S.room.orientation==k?'selected':''}>${v}</option>`).join('')}</select></div>
+ <div><label>Air conditioner age (years)</label><input id="age" type="number" min="0" value="${S.room.ageYears}"></div></div></div>
+ <details id="wi" class="card" ${whatOpen?'open':''}><summary style="cursor:pointer"><b>Estimate before data / What-if</b></summary>
+ <div class="mu" style="margin-top:8px">Use this before the board is connected, or to see how much an extra appliance would add (as a likely range). Pick the month and how many days each appliance is used. The range is the likely spread, not the absolute worst and best case. Kept separate from measured data.</div>
+ <div class="grid"><div><label>Estimate for month</label><input id="wm" type="month" value="${ym}"></div><div></div></div>
+ <div class="grid"><div><label>Name</label><input id="n" placeholder="e.g. Fan"></div><div><label>Type</label><select id="t">${typeOpts('other')}</select></div>
+ <div><label>Label watts</label><input id="w" type="number" min="1"></div><div><label>Hours per day</label><input id="h" type="number" min="0" max="24" step="0.5"></div>
+ <div><label>Days used per month</label><input id="du" type="number" min="1" max="31" placeholder="Blank = every day"></div>
+ <div><label>Appliance age (years)</label><input id="ag" type="number" min="0" placeholder="Unknown = leave blank"></div>
+ <div><label>Condition</label><select id="c">${Object.entries(CND).map(([k,v])=>`<option value="${k}" ${k=='normal'?'selected':''}>${v}</option>`).join('')}</select></div></div>
+ <div style="margin-top:12px"><button class="btn g" id="calnew">${calOpen==='new'?'Hide calendar':'Pick days on calendar'}</button> <span class="mu">${calDraft.length?calDraft.length+' days selected (overrides the number above)':'Or type a number of days above'}</span></div>${calOpen==='new'?calHTML(ym,calDraft,'new'):''}
+ <button class="btn" id="add">+ Add appliance</button>
+ ${man.length?(()=>{const t={min:0,expected:0,max:0};let v2=0;man.forEach(([it])=>{const e=est(it),k=dd(it);t.expected+=e.expected*k;v2+=((e.max-e.min)/2*k)**2});const sd=Math.sqrt(v2);t.min=Math.max(0,t.expected-sd);t.max=t.expected+sd;
+ return `<div class="crow" style="margin-top:14px"><b>Estimated bill · ${mlabel}</b><span>${B(t.min)}–${B(t.max)} <span class="mu">(about ${B(t.expected)})</span></span></div><div class="crow"><span class="mu">Your monthly budget</span><span>${B(S.budget)}${t.expected>S.budget?'<span class="delta up">▲ over budget</span>':'<span class="delta dn">▼ within budget</span>'}</span></div>`})():''}
+ ${man.map(([it,i])=>{const e=est(it);return `<div class="item row"><span>${esc(it.name)} <span class="mu">${TYPES[it.type]||'Other'} · ${it.watts} W × ${it.hoursPerDay} h × ${dd(it)} days${it.ageYears!=null?' · age '+it.ageYears+' yr':''}${it.condition?' · '+CND[it.condition]:''}</span></span><span>+${B(e.min*dd(it))}–${B(e.max*dd(it))}/month <button class="x" data-ed="${i}" style="color:#60a5fa;margin-right:10px">Edit days</button><button class="x" data-del="${i}">Delete</button></span></div>${calOpen===i?`<div class="item">${calHTML(ym,(it.daysByMonth||{})[ym]||[],i)}</div>`:''}`}).join('')}</details>`},
+
+tips(){const r=calc(),now=new Date(),d=now.getDate(),n=daysInMonth(now),y=now.getFullYear(),m=now.getMonth(),by=realByDevice(now),
+ R=monthReal(now,r),lim=dailyBudget(S.budget,now),real=!!R,G=[[],[]],P=(c,t,x,g=0)=>G[g].push([c,t,x]),
+ dvv=k=>{const v=S.log[ymd(y,m,k)];return v==null?null:tot(v)},
+ avgOf=(a,b)=>{const xs=[];for(let k=Math.max(1,a);k<=b;k++){const v=dvv(k);if(v!=null)xs.push(v)}return xs.length>=3?xs.reduce((s,x)=>s+x,0)/xs.length:null},
+ isAc=k=>((S.items.find(i=>i.name==k)||{}).type=='ac'),sumBy=Object.values(by).reduce((s,x)=>s+x,0);
+ let acShare=0;
+ if(real){
+  const left=n-d,budgetLeft=S.budget-R.sum;
+  if(R.M.expected>S.budget){const need=left>0&&budgetLeft>0?budgetLeft/left:0;
+   P('Do today','Likely to exceed your budget by month-end',`At this pace the month will end near ${B(R.M.expected)} (budget ${B(S.budget)}). `+(need>0?`Keep it to ${B(need)} per day or less for the remaining ${left} days.`:'You are already over budget. Cut back to limit the overshoot.'))}
+  else P('Keep it up','On track to stay within budget',`Projected month-end cost is about ${B(R.M.expected)} against a budget of ${B(S.budget)}.`);
+  const a=avgOf(d-7,d-1),b=avgOf(d-14,d-8);
+  if(a!=null&&b!=null&&b>0){const ch=(a-b)/b*100;
+   if(Math.abs(ch)>=5)P(ch>0?'Trend':'Keep it up',ch>0?`Last 7 days used ${ch.toFixed(0)}% more than the week before`:`Last 7 days used ${(-ch).toFixed(0)}% less than the week before`,`Average ${B(a)}/day versus ${B(b)}/day`)}
+  const done=[];for(let k=1;k<d;k++){const v=dvv(k);if(v!=null)done.push(v)}
+  const over=done.filter(v=>v>lim).length;
+  if(done.length>=3&&over>=3)P('Suggestion',`Over the daily budget on ${over} of ${done.length} days`,'Check the trend chart for unusually high days and think about what was running on them.');
+  else if(done.length>=3&&over==0)P('Keep it up',`Never over the daily budget in ${done.length} days`,'Keep this routine going.');
+  if(sumBy>0){acShare=Object.keys(by).filter(isAc).reduce((s,k)=>s+by[k],0)/sumBy*100;
+   if(acShare>65)P('Do today','Air conditioner use is higher than usual',`The AC is ${acShare.toFixed(0)}% of this month cost. Try 26°C with a fan, and set a timer to switch off 30 minutes before you wake.`);
+   const ks=Object.keys(by).filter(k=>k!='__other').sort((p,q)=>by[q]-by[p]);
+   if(ks.length&&!(isAc(ks[0])&&acShare>65))P('Info',`${ks[0]} uses the most: ${(by[ks[0]]/sumBy*100).toFixed(0)}% of this month cost`,`${B(by[ks[0]])} of ${B(sumBy)}`)}
+ }
+ if(S.room.ageYears>7)P('Suggestion','Older air conditioner','ACs over 7 years old use more power. Clean the filter and check the refrigerant.',1);
+ const bad=S.items.filter(i=>['old','faulty'].includes(i.condition));if(bad.length)P('Suggestion','Old or faulty appliances may draw more than their label',bad.map(i=>i.name).join(', ')+' — measure with a smart plug and compare with the label.',1);
+ if(['west','south'].includes(S.room.orientation))P('Suggestion','Room gets afternoon sun','Window film or thermal curtains reduce the AC load.',1);
+ P('When convenient','Unplug what you are not using','Standby power adds up to tens of baht per month. Unplug, or use a switched power strip.',1);
+ const card=(t,k)=>`<div class="card tip"><span class="mu">0${k+1}</span><div><span class="chip">${t[0]}</span><div><b>${t[1]}</b></div><div class="mu">${t[2]}</div></div></div>`;
+ return `<div class="eyebrow">Energy coach</div><h1>Monthly tips</h1><p class="sub">${real?'Built from your real usage this month. Updates as new data arrives.':'No measured data yet. These tips come from your room details and the estimate formula.'}</p>`+
+ (G[0].length?`<h2 class="sec">${real?'From your real usage':'From the estimate'}</h2>`+G[0].map(card).join(''):'')+
+ `<h2 class="sec">From your room details</h2>`+G[1].map(card).join('')},
+
+set(){return `<div class="eyebrow">Settings</div><h1>Budget &amp; electricity rate</h1><p class="sub">You will be alerted when usage goes over the daily budget.</p>
+ <div class="card"><label>Monthly electricity budget (THB)</label><input id="bd" type="number" value="${S.budget}"></div>
+ <div class="card"><label>Price per unit (THB/kWh)</label><input id="rt" type="number" step="0.01" value="${S.rate}"><div class="mu">Use the rate from your dorm actual electricity bill.</div></div>
+ <button class="btn" id="sv">Save settings</button>`}};
+
+function render(){$('#v').innerHTML='<button class="btn g backbtn" id="bk">← Back</button>'+pages[page]();document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.p==page));$('#bk').onclick=()=>{hs&&hist.length?history.back():back()};
+if($('#gc'))$('#gc').onclick=()=>{push();page='data';render()};
+  if(page=='home'&&$('#pv')){const now=new Date(),y=view.getFullYear(),m=view.getMonth(),n=daysInMonth(view),cur=y==now.getFullYear()&&m==now.getMonth(),k=d=>ymd(y,m,d);
+  $('#pv').onclick=()=>{view.setMonth(view.getMonth()-1);sel=null;render()};
+  $('#nx').onclick=()=>{view.setMonth(view.getMonth()+1);sel=null;render()};
+  document.querySelectorAll('.col').forEach(c=>c.onclick=()=>{sel=+c.dataset.d;render()});
+  if(cur&&$('#lgb'))$('#lgb').onclick=()=>{const t=$('#lg').value;if(t===''||+t<0)return alert('Enter the cost for today');S.log[k(now.getDate())]=+t;save();render()};
+  if($('#smp'))$('#smp').onclick=()=>{if(!S.items.some(i=>!i.manual))DEMO.forEach(x=>S.items.push({...x}));const r=calc(),end=cur?now.getDate()-1:n;for(let d=1;d<=end;d++){const o={};r.perAppliance.filter((_,i)=>!S.items[i].manual).forEach(a=>o[a.name]=+(a.costDay.expected*(0.6+Math.random()*0.8)).toFixed(1));S.log[k(d)]=o}save();render()};
+  if($('#sim'))$('#sim').onclick=()=>{const t0=new Date(now);t0.setHours(0,0,0,0);delete S.log[k(now.getDate())];S.last={};if(!S.items.some(i=>!i.manual))DEMO.forEach(x=>S.items.push({...x}));for(const it of dv()){let t=t0.getTime();while(t<=now.getTime()){applyReading(it.name,(it.watts||100)*(0.4+Math.random()*0.6),t);t+=300000}}save();render()};
+  if($('#clr'))$('#clr').onclick=()=>{for(let d=1;d<=31;d++)delete S.log[k(d)];S.items=S.items.filter(i=>!i.demo);S.last={};S.ktot={};save();render()}}
+ if(page=='data'){
+  $('#ori').onchange=e=>{S.room.orientation=e.target.value;save()};
+  $('#age').onchange=e=>{S.room.ageYears=+e.target.value||0;save()};
+  $('#cc').onclick=()=>{S.cloud={url:$('#cu').value.trim(),room:$('#cr').value.trim()||'room1',token:$('#ct').value.trim(),on:true};save();startCloud();render()};
+  $('#cx').onclick=()=>{S.cloud.on=false;save();stopCloud();render()};
+  document.querySelectorAll('.dn').forEach(x=>x.onchange=()=>{renameDevice(S.items[+x.dataset.i],x.value);render()});
+  document.querySelectorAll('.dt').forEach(x=>x.onchange=()=>{S.items[+x.dataset.i].type=x.value;save()});
+  $('#wi').ontoggle=()=>{whatOpen=$('#wi').open};
+  $('#wm').onchange=()=>{wmon=$('#wm').value||null;calDraft=[];calOpen=null;whatOpen=true;render()};
+  $('#calnew').onclick=()=>{calOpen=calOpen==='new'?null:'new';whatOpen=true;render()};
+  document.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{const i=+b.dataset.ed,it=S.items[i],c=wm();it.daysByMonth=it.daysByMonth||{};
+   if(!it.daysByMonth[c.ym])it.daysByMonth[c.ym]=Array.from({length:it.daysUsed?Math.min(it.daysUsed,c.dm):c.dm},(_,k)=>k+1);
+   calOpen=calOpen===i?null:i;whatOpen=true;save();render()});
+  document.querySelectorAll('[data-cd]').forEach(b=>b.onclick=()=>{calToggle(b.dataset.ctx,+b.dataset.cd);whatOpen=true;render()});
+  document.querySelectorAll('[data-cq]').forEach(b=>b.onclick=()=>{calQuick(b.dataset.ctx,b.dataset.cq);whatOpen=true;render()});
+  $('#add').onclick=()=>{const n=$('#n').value.trim(),w=+$('#w').value,hr=+$('#h').value;if(!n||!w||!hr)return alert('Please fill in name, watts and hours');
+   S.items.push({name:n,type:$('#t').value,watts:w,hoursPerDay:hr,manual:true,daysUsed:calDraft.length||$('#du').value===''?undefined:Math.min(31,Math.max(1,+$('#du').value)),daysByMonth:calDraft.length?{[wm().ym]:calDraft.slice()}:undefined,condition:$('#c').value,ageYears:$('#ag').value===''?undefined:+$('#ag').value});calDraft=[];calOpen=null;save();whatOpen=true;render()};
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{S.items.splice(+b.dataset.del,1);save();whatOpen=true;render()})}
+ if(page=='set')$('#sv').onclick=()=>{S.budget=+$('#bd').value||3000;S.rate=+$('#rt').value||4.18;save();page='home';render()}}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{const p=b.dataset.p;if(p=='hub')go('hub');else if(p=='out'){S.user=null;save();hist=[];go('landing',true)}else{if(p!=page)push();page=p;render()}});
+go(screen);startCloud();try{if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
+</script></body></html>
