@@ -229,7 +229,7 @@ input:focus, select:focus { border-color: var(--bl); box-shadow: 0 0 0 3px rgba(
   .big { font-size: 30px; }
 }
 
-/* ---- Dashboard components (แรงบันดาลใจจากโครงสร้างแดชบอร์ด Ventriloc) ---- */
+/* ---- Dashboard components ---- */
 .meta{color:var(--mu);font-size:13px;margin:-2px 0 18px}
 .sec{font-size:18px;font-weight:600;margin:30px 0 4px;letter-spacing:-.2px}
 .secd{color:var(--mu);font-size:13px;margin:0 0 14px;font-weight:300}
@@ -273,6 +273,8 @@ nav .sp{flex:1}
 .cd{all:unset;cursor:pointer;text-align:center;padding:9px 0;border-radius:10px;border:1px solid var(--bd);font-size:13px}
 .cd:hover{border-color:rgba(96,165,250,.6)}.cd.on{background:var(--bl);color:#fff;border-color:transparent;font-weight:600}
 .calbox{margin-top:10px}.calbox .ctl .btn{padding:7px 12px;font-size:12px}
+@media(max-width:800px){nav{overflow-x:auto}nav button{flex:0 0 auto!important;padding:10px 14px!important}}
+.exmp{opacity:.62;pointer-events:none;user-select:none}
 </style>
 </head>
 <body>
@@ -289,12 +291,6 @@ nav .sp{flex:1}
 <div id="entry"></div>
 <main id="v"></main>
 <script>
-// calculate.js — สูตรคำนวณค่าไฟ WattWise (ข้อ 4 + ตัวช่วยข้อ 6 และ 8)
-// ใช้ได้ทั้ง <script type="module"> และ import ใน React/HTML ธรรมดา
-// หมายเหตุ: ค่าตัวคูณทั้งหมดเป็น "ค่าเริ่มต้นสมมติ" ไม่ใช่ค่าจากงานวิจัย
-// ให้ปรับด้วยข้อมูลจริงจาก Smart Plug (ข้อ 8)
-
-// ตัวคูณ [ต่ำสุด, สูงสุด] ของแอร์ ตามทิศห้อง
 const ORIENTATION_FACTOR = {
   north: [1.0, 1.05],
   east:  [1.0, 1.05],
@@ -302,37 +298,30 @@ const ORIENTATION_FACTOR = {
   west:  [1.1, 1.2],
 };
 
-// ตัวคูณตามอายุแอร์ (ปี) -> [ต่ำสุด, สูงสุด]
 function ageFactor(years) {
   if (years < 3) return [1.0, 1.0];
   if (years <= 7) return [1.05, 1.1];
   return [1.15, 1.25];
 }
 
-// แอร์ไม่ได้กินไฟเต็ม Watt บนฉลากตลอดเวลา (คอมเพรสเซอร์ตัด/ต่อ)
-// duty cycle = สัดส่วนที่ทำงานจริง [ต่ำสุด, สูงสุด] (ค่าสมมติ ให้ปรับด้วยข้อมูลจริง)
 const AC_DUTY_CYCLE = [0.5, 0.8];
-
-// สัดส่วนเวลาที่เครื่องกินไฟจริงตามประเภท [ต่ำสุด, สูงสุด] (ค่าสมมติเริ่มต้น ต้องปรับตามผลวัดจริง)
 const TYPE_DUTY = {
   ac: AC_DUTY_CYCLE,
-  fridge: [0.3, 0.5],     // คอมเพรสเซอร์ตัด-ต่อ
+  fridge: [0.3, 0.5],
   fan: [1, 1],
   tv: [1, 1],
-  computer: [0.5, 1.0],   // ตอนว่างกับตอนโหลดหนักต่างกัน
+  computer: [0.5, 1.0],
   lighting: [1, 1],
-  heater: [0.3, 0.6],     // เทอร์โมสตัทตัด-ต่อ
+  heater: [0.3, 0.6],
   other: [1, 1],
 };
 
-// ความไม่แน่นอนของชั่วโมงใช้งาน (±20% ถ้าผู้ใช้ไม่ระบุช่วง)
 const HOURS_UNCERTAINTY = 0.2;
 
-function daysInMonth(date = new Date()) {
+function daysInMonth(date = nowD()) {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
-// ตัวคูณสึกหรอของเครื่องทั่วไปตามอายุ [ต่ำสุด, สูงสุด] (ค่าสมมติ) ถ้าไม่ทราบอายุ = ช่วงกว้างขึ้น
 function applianceAgeFactor(years) {
   if (years == null || Number.isNaN(years)) return [1.0, 1.15];
   if (years < 5) return [1.0, 1.0];
@@ -340,25 +329,13 @@ function applianceAgeFactor(years) {
   return [1.05, 1.25];
 }
 
-// ตัวคูณตามสภาพเครื่อง (ค่าสมมติ): ไม่ระบุ = normal
 const CONDITION_FACTOR = {
   new:    [1.0, 1.0],
   normal: [1.0, 1.05],
-  old:    [1.1, 1.3],   // เก่า/สกปรก/ซีลเสื่อม
-  faulty: [1.3, 1.6],   // มีอาการผิดปกติ เช่น ทำงานไม่หยุด ไม่ค่อยเย็น
+  old:    [1.1, 1.3],
+  faulty: [1.3, 1.6],
 };
 
-/**
- * คำนวณต่อเครื่อง
- * appliance = {
- *   name, type: 'ac' | 'other', watts, hoursPerDay,
- *   hoursMin?, hoursMax?,
- *   ageYears?,                      // ไม่ทราบ = เว้นว่าง
- *   condition?: 'new'|'normal'|'old'|'faulty',
- *   measuredWatts?,                 // วัตต์ที่วัดจริง (ถ้ามี จะไม่คูณตัวสึกหรอซ้ำ)
- *   orientation?                    // ใช้เฉพาะแอร์
- * }
- */
 function estimateAppliance(appliance, ratePerKwh) {
   const { hoursPerDay, type } = appliance;
   const measured = appliance.measuredWatts > 0;
@@ -366,7 +343,6 @@ function estimateAppliance(appliance, ratePerKwh) {
   const hMin = appliance.hoursMin ?? hoursPerDay * (1 - HOURS_UNCERTAINTY);
   const hMax = appliance.hoursMax ?? hoursPerDay * (1 + HOURS_UNCERTAINTY);
 
-  // แต่ละแหล่งความไม่แน่นอน = ช่วง [ต่ำ, สูง]
   const duty = TYPE_DUTY[type] ?? [1, 1];
   const factors = [duty];
   if (type === 'ac') factors.push(ORIENTATION_FACTOR[appliance.orientation] ?? [1.0, 1.1]);
@@ -376,12 +352,9 @@ function estimateAppliance(appliance, ratePerKwh) {
     factors.push(CONDITION_FACTOR[appliance.condition] ?? CONDITION_FACTOR.normal);
   }
 
-  // ค่ากลาง = ชั่วโมงกลาง x ค่ากลางของทุกตัวคูณ
   const mid = (f) => (f[0] + f[1]) / 2;
   const expKwh = (watts * hoursPerDay * factors.reduce((p, f) => p * mid(f), 1)) / 1000;
 
-  // ช่วงที่น่าจะเป็น: รวมความไม่แน่นอนแบบอิสระ (root-sum-square) ไม่ใช่เอาค่าแย่สุด/ดีสุดมาคูณพร้อมกัน
-  // (ประมาณการเชิงฮิวริสติก ไม่ใช่ช่วงความเชื่อมั่นทางสถิติ)
   const rel = (f) => (f[1] - f[0]) / (f[1] + f[0]);
   const w = Math.sqrt([[hMin, hMax], ...factors].reduce((s, f) => s + rel(f) ** 2, 0));
   const kwhDay = { min: expKwh * (1 - w), expected: expKwh, max: expKwh * (1 + w) };
@@ -393,11 +366,6 @@ function estimateAppliance(appliance, ratePerKwh) {
   return { name: appliance.name, kwhDay, costDay };
 }
 
-/**
- * คำนวณรวมทั้งห้อง ทั้งเดือน
- * คืน { perAppliance, daily: {min,expected,max}, monthly: {min,expected,max} }
- * calibrationFactor: ตัวปรับจากข้อ 8 (ค่าเริ่มต้น 1)
- */
 function estimateRoom(appliances, ratePerKwh, days = daysInMonth(), calibrationFactor = 1) {
   const perAppliance = appliances.map((a) => estimateAppliance(a, ratePerKwh));
   const sum = (key) =>
@@ -414,36 +382,27 @@ function estimateRoom(appliances, ratePerKwh, days = daysInMonth(), calibrationF
   return { perAppliance, daily, monthly };
 }
 
-// ---------- ข้อ 6: งบรายวัน + แจ้งเตือน ----------
-function dailyBudget(monthlyBudget, date = new Date()) {
+function dailyBudget(monthlyBudget, date = nowD()) {
   return monthlyBudget / daysInMonth(date);
 }
 
-// คืน null ถ้ายังไม่เกิน, คืนข้อความถ้าเกิน
-function checkBudgetAlert(todayCost, monthlyBudget, date = new Date()) {
+function checkBudgetAlert(todayCost, monthlyBudget, date = nowD()) {
   const limit = dailyBudget(monthlyBudget, date);
   if (todayCost <= limit) return null;
   return `Used ${todayCost.toFixed(0)} THB today (over the daily budget of ${limit.toFixed(2)} THB)`;
 }
 
-// ---------- ข้อ 8: Calibrate ----------
-// measuredKwh = ค่าจริงจาก Smart Plug, estimatedKwh = ค่าที่สูตรคำนวณ
-// ใช้เฉลี่ยหลายวันจะนิ่งกว่าวันเดียว
 function calibrationFactor(measuredKwh, estimatedKwh) {
   if (!estimatedKwh) return 1;
   return measuredKwh / estimatedKwh;
 }
 
-// ---------- รับค่าวัตต์จาก ESP32 ----------
-// prev/next = {t: เวลา(ms), w: วัตต์}  คืนค่า kWh ระหว่างสองจุด (ค่าเฉลี่ยของสองจุด × เวลา)
-// ถ้าห่างกันเกิน maxGapSec (อุปกรณ์หลุดออฟไลน์) จะนับแค่ maxGapSec เพื่อไม่เกินจริง
 function kwhStep(prev, next, maxGapSec = 600) {
   const dt = (next.t - prev.t) / 1000;
   if (!(dt > 0)) return 0;
   return (((prev.w + next.w) / 2) * Math.min(dt, maxGapSec)) / 3600 / 1000;
 }
 
-// รวม kWh จากรายการ samples [{t, w}, ...] เรียงตามเวลา
 function kwhFromSamples(samples, maxGapSec = 600) {
   let kwh = 0;
   for (let i = 1; i < samples.length; i++) kwh += kwhStep(samples[i - 1], samples[i], maxGapSec);
@@ -459,41 +418,43 @@ const $=s=>document.querySelector(s),B=n=>'฿'+Math.round(n).toLocaleString('th
 let page='home';
 const calc=()=>estimateRoom(S.items.map(i=>({...i,orientation:S.room.orientation,ageYears:i.ageYears??(i.type=='ac'?S.room.ageYears:undefined)})),S.rate,daysInMonth());
 
-let view=new Date();view.setDate(1);let sel=null;
+const nowD=()=>S.demoDate?new Date(S.demoDate+'T12:00:00'):new Date(Date.now());
+let view=nowD();view.setDate(1);let sel=null;
 const CL={new:'New',normal:'Normal',old:'Old',faulty:'Faulty'};
 const PAL=['#1a5cff','#14b8a6','#f59e0b','#a855f7','#ec4899','#64748b','#84cc16','#f97316'];
 const ymd=(y,m,d)=>`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 const tot=v=>typeof v=='object'?Object.values(v).reduce((a,b)=>a+b,0):v;
-function parts(v,r){const D=dv();if(v&&typeof v=='object')return D.map(i=>v[i.name]||0);
- const e=r.perAppliance.filter((_,k)=>D.includes(S.items[k])).map(a=>a.costDay.expected),t=e.reduce((a,b)=>a+b,0)||1;return e.map(x=>v*x/t)}
+function parts(v,r){const D=dv();if(v&&typeof v=='object'){const a=D.map(i=>v[i.name]||0),rest=tot(v)-a.reduce((s,x)=>s+x,0);return rest>0.005?[...a,rest]:a}
+ const e=r.perAppliance.filter((_,k)=>D.includes(S.items[k])).map(a=>a.costDay.expected),t=e.reduce((a,b)=>a+b,0)||1;return e.length?e.map(x=>v*x/t):[v]}
 function chart(r,now,_l){const y=view.getFullYear(),m=view.getMonth(),n=daysInMonth(view),lim=dailyBudget(S.budget,view),
  cur=y==now.getFullYear()&&m==now.getMonth(),past=new Date(y,m,1)<new Date(now.getFullYear(),now.getMonth(),1),d0=cur?now.getDate():0;
  const vals=[];for(let d=1;d<=n;d++)vals.push(S.log[ymd(y,m,d)]);
  const T=vals.map(v=>v==null?null:tot(v)),lo=T.filter(v=>v!=null),sum=lo.reduce((a,b)=>a+b,0),avg=lo.length?sum/lo.length:null;
- const mx=Math.max(lim*1.6,r.daily.max,...lo)||1,by=dv().map(()=>0);
+ const mx=Math.max(lim*1.6,...lo)||1,by=[...dv().map(()=>0),0];
  const bars=vals.map((v,i)=>{const d=i+1;let inner='',c='stk',tt='Day '+d+': no data',h=2;
   if(v!=null){const p=parts(v,r),t=T[i];p.forEach((x,k)=>by[k]+=x);h=t/mx*100;if(t>lim)c+=' over';
-   inner=p.map((x,k)=>`<div class="seg" style="height:${t?x/t*100:0}%;background:${PAL[k%PAL.length]}"></div>`).join('');tt='Day '+d+': '+B(t)}
-  else if(cur&&d<=d0){h=r.daily.expected/mx*100;inner='<div class="seg" style="height:100%;background:#1a5cff33"></div>'}
+   inner=p.map((x,k)=>`<div class="seg" style="height:${t?x/t*100:0}%;background:${k>=dv().length?'#64748b':PAL[k%PAL.length]}"></div>`).join('');tt='Day '+d+': '+B(t)}
   else c+=' fut';
   return `<div class="col" data-d="${d}"><div class="${c}${cur&&d==d0?' today':''}${sel==d?' sel':''}" style="height:${Math.max(h,2)}%" title="${tt}">${inner}</div></div>`}).join('');
  const lab=vals.map((_,i)=>`<span>${(i+1)%5==0||i==0?i+1:''}</span>`).join('');
- const leg=dv().map((it,k)=>`<span><i style="background:${PAL[k%PAL.length]}"></i>${it.name} ${B(by[k])}</span>`).join('');
- let det='';if(sel&&vals[sel-1]!=null){const p=parts(vals[sel-1],r);det=`<div style="margin-top:10px"><b>Day ${sel}: ${B(T[sel-1])}</b> <span class="mu">(target ${lim.toFixed(0)}) — ${dv().map((it,k)=>it.name+' '+B(p[k])).join(' · ')}</span></div>`}
+ const leg=dv().map((it,k)=>`<span><i style="background:${PAL[k%PAL.length]}"></i>${it.name} ${B(by[k])}</span>`).join('')+(by[dv().length]>0.005?`<span><i style="background:#64748b"></i>Other devices ${B(by[dv().length])}</span>`:'');
+ let det='';if(sel&&vals[sel-1]!=null){const p=parts(vals[sel-1],r);det=`<div style="margin-top:10px"><b>Day ${sel}: ${B(T[sel-1])}</b> <span class="mu">(target ${lim.toFixed(0)}) — ${dv().map((it,k)=>it.name+' '+B(p[k])).concat(p.length>dv().length?['Other devices '+B(p[dv().length])]:[]).join(' · ')}</span></div>`}
  const sm=avg==null?'No measured data this month yet':`Total ${B(sum)} over ${lo.length} days · average ${avg.toFixed(0)} THB/day — ${avg<=lim?'on target ✓':'over target, try to cut back'}`;
  return `<div class="card"><div class="row"><div class="ctl" style="margin:0"><button class="btn g" id="pv">‹</button><b>${view.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</b><button class="btn g" id="nx">›</button></div><span class="mu">Target ${lim.toFixed(0)} THB/day</span></div>
  <div class="plot"><div class="lim" style="bottom:${lim/mx*100}%"></div>${bars}</div><div class="lab">${lab}</div>
- <div class="lg">${leg}<span><i style="background:#1a5cff33"></i>Not logged (estimate)</span><span><i style="background:var(--tl)"></i>Daily budget line</span><span><i style="background:var(--rd)"></i>Red mark = over budget</span></div>
+ <div class="lg">${leg}<span><i style="background:rgba(255,255,255,.12)"></i>No data</span><span><i style="background:var(--tl)"></i>Daily budget line</span><span><i style="background:var(--rd)"></i>Red mark = above the daily budget</span></div>
  ${det}<div class="mu" style="margin-top:10px">${sm}</div>
  ${S.cloud.on?'<div class="mu" style="margin-top:12px">Daily data comes from the ESP32 board via Firebase automatically. No manual entry needed.</div>':`<details style="margin-top:14px"><summary class="mu" style="cursor:pointer">Test tools (use before the board is connected)</summary><div class="ctl">${cur?'<input id="lg" type="number" min="0" placeholder="Cost today (THB)"><button class="btn" id="lgb">Log today</button>':''}${cur||past?'<button class="btn g" id="smp">Generate sample data</button>':''}${cur?'<button class="btn g" id="sim">Simulate ESP32 data</button>':''}<button class="btn g" id="clr">Clear this month</button></div></details>`}</div>`}
 let live={},timer=null,cstat='Not connected',pc=0;
 const ensure=name=>{if(!S.items.some(i=>i.name==name))S.items.push({name,type:'other',watts:0,hoursPerDay:0})};
-function addKwh(name,kwh,t){if(!(kwh>0))return;const d=new Date(t),key=ymd(d.getFullYear(),d.getMonth(),d.getDate());let v=S.log[key];
+function addKwh(name,kwh,t){if(!(kwh>0))return;const d=new Date(t),key=ymd(d.getFullYear(),d.getMonth(),d.getDate());if(S.cd&&S.cd[key])return;let v=S.log[key];
  if(v==null||typeof v!='object')v=S.log[key]=(typeof v=='number'?{__other:v}:{});v[name]=(v[name]||0)+kwh*S.rate}
 function applyReading(name,w,t=Date.now()){S.last=S.last||{};const p=S.last[name];S.last[name]={t,w};ensure(name);if(p)addKwh(name,kwhStep(p,{t,w}),t);save()}
-function ingestCloud(key,v){const nm=v.name||key;let it=S.items.find(i=>i.id==key)||S.items.find(i=>!i.id&&!i.manual&&i.name==nm);
- if(!it){let n2=nm;if(S.items.some(i=>i.name==n2))n2=nm+' ('+key+')';it={id:key,name:n2,type:guessType(key+' '+nm),watts:0,hoursPerDay:0};S.items.push(it)}
- it.id=key;const name=it.name;let t=v.ts;if(!t)t=Date.now();else if(t<1e12)t*=1000;live[name]={w:v.watts,t};
+function devFor(key,nm){let it=S.items.find(i=>i.id==key)||S.items.find(i=>!i.id&&!i.manual&&i.name==nm);
+ if(!it){let n2=nm;if(S.items.some(i=>i.name==n2))n2=nm+' ('+key+')';it={id:key,name:n2,type:guessType(key+' '+nm),watts:0,hoursPerDay:0};if(String(key).startsWith('sim-'))it.demo=true;S.items.push(it)}
+ it.id=key;return it}
+function ingestCloud(key,v){const nm=v.name||key;const it=devFor(key,nm);
+ const name=it.name;let t=v.ts;if(!t)t=Date.now();else if(t<1e12)t*=1000;live[name]={w:v.watts,t};
  if(typeof v.kwh_total=='number'){S.ktot=S.ktot||{};const p=S.ktot[name];S.ktot[name]=v.kwh_total;if(p!=null&&v.kwh_total>=p)addKwh(name,v.kwh_total-p,t)}
  else{S.last=S.last||{};const p=S.last[name];if(!p||t>p.t){S.last[name]={t,w:v.watts};if(p)addKwh(name,kwhStep(p,{t,w:v.watts}),t)}}}
 const cloudUrl=()=>{const c=S.cloud;return c.url.replace(/\/+$/,'')+'/rooms/'+encodeURIComponent(c.room)+'/devices.json'+(c.token?'?auth='+encodeURIComponent(c.token):'')};
@@ -505,8 +466,8 @@ function liveHTML(){const ns=Object.keys(live),on=n=>Date.now()-live[n].t<120000
 function paint(){const e=$('#live');if(e)e.innerHTML=liveHTML();const s=$('#cst');if(s)s.textContent=cstat}
 async function poll(){try{const r=await fetch(cloudUrl());if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();
  if(d)for(const[k,v]of Object.entries(d))if(v&&typeof v.watts=='number')ingestCloud(k,v);
- cstat='Connected · updated '+new Date().toLocaleTimeString('en-US');save();
- if(page=='home'&&screen=='app'&&(++pc%6==0||(document.querySelector('#empty')&&monthReal(new Date(),calc())))&&!document.activeElement?.matches?.('input,select'))render();else paint()}
+ if(pdc++%6==0)await pollDaily();cstat='Connected · updated '+new Date().toLocaleTimeString('en-US');save();
+ if(page=='home'&&screen=='app'&&(++pc%6==0||(document.querySelector('#empty,#estdash')&&monthReal(nowD(),calc())))&&!document.activeElement?.matches?.('input,select'))render();else paint()}
  catch(e){cstat='Connection failed: '+e.message;paint()}}
 function stopCloud(){if(timer){clearInterval(timer);timer=null}live={};cstat='Not connected'}
 function startCloud(){stopCloud();if(!S.cloud.on||!S.cloud.url)return;cstat='Connecting…';poll();timer=setInterval(poll,5000)}
@@ -516,10 +477,11 @@ function monthReal(now,r){const y=now.getFullYear(),m=now.getMonth(),d=now.getDa
  if(!has)return null;const left=n-d,fr=Math.max((now.getHours()*60+now.getMinutes())/1440,0.1),avg=done.length?done.reduce((a,b)=>a+b,0)/done.length:sum/fr;
  const mn=done.length?Math.min(...done):avg,mx=done.length?Math.max(...done):avg;
  return{sum,M:{min:sum+mn*left,expected:sum+avg*left,max:sum+mx*left}}}
-let whatOpen=false,wmon=null,calOpen=null,calDraft=[];
+let whatOpen=false,wmon=null,calOpen=null,calDraft=[],ovTab='m';
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 const guessType=s=>/air|aircon|\bac\b|แอร์/i.test(s)?'ac':/fridge|refrigerator|freezer|ตู้เย็น/i.test(s)?'fridge':/\bfan\b|พัดลม/i.test(s)?'fan':/\btv\b|monitor|television|โทรทัศน์/i.test(s)?'tv':/laptop|computer|\bpc\b|คอม/i.test(s)?'computer':/light|lamp|bulb|หลอด/i.test(s)?'lighting':/heater|kettle|boiler|กาน้ำ/i.test(s)?'heater':'other';
-const dv=()=>{const a=S.items.filter(i=>!i.manual);return a.length?a:S.items};
+const dv=()=>S.items.filter(i=>!i.manual);
+function clearSaved(){S.log={};S.items=S.items.filter(i=>!i.demo);S.last={};S.ktot={};save()}
 function renameDevice(it,nn){nn=(nn||'').trim();if(!nn||nn==it.name)return;
  if(S.items.some(i=>i!==it&&i.name==nn)){alert('That name already exists');return}
  const o=it.name;for(const k in S.log){const v=S.log[k];if(v&&typeof v=='object'&&o in v){v[nn]=(v[nn]||0)+v[o];delete v[o]}}
@@ -542,7 +504,7 @@ const bars=()=>{const v=[38,52,46,60,68,50,44,64,56,72,58,48,66,54],lim=58;retur
 const area=()=>{const s=[70,64,58,54,46,42,36],f=[36,32,28,24],P=a=>a.map((y,i)=>[i*22+6,y+6]);const A=P(s),B2=P(s.slice(-1).concat(f)).map(([x,y],i)=>[x+6*22,y]);
  return `<svg viewBox="0 0 280 90" width="100%"><polygon points="${A.map(p=>p.join(',')).join(' ')} ${A[6][0]},90 6,90" fill="rgba(59,130,246,.18)"/><polyline points="${A.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#60a5fa" stroke-width="2.5"/><polyline points="${B2.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4 4" opacity=".7"/></svg>`};
 const donut=`<svg viewBox="0 0 100 100" width="104"><circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/><circle cx="50" cy="50" r="38" fill="none" stroke="#3b82f6" stroke-width="10" stroke-linecap="round" stroke-dasharray="148 239" transform="rotate(-90 50 50)"/><text x="50" y="56" text-anchor="middle" fill="#fff" font-size="19" font-weight="700">62%</text></svg>`;
-const logo=`<div class="brand"><img src="logo.png" alt="" onerror="this.style.display='none'">WattWise</div>`;
+const logo=`<div class="brand"><img src="Logo.png.png" alt="" onerror="this.style.display='none'">WattWise</div>`;
 const entry={
 landing:()=>`<div class="wrap"><div class="top">${logo}<div class="pill"><a data-s="feat">Features</a><a data-s="how">How it works</a><a data-s="hw">Hardware</a></div><button class="btn" data-go="login">Sign in</button></div>
  <section class="hero"><div><h1>Know your <span class="hl2">electricity bill</span> before it arrives.</h1><p class="lead">WattWise measures each appliance in your room, tracks daily use against your budget, and coaches you to spend less.</p>
@@ -585,10 +547,17 @@ function push(){hist.push({s:screen,p:page});try{history.pushState(null,'')}catc
 function back(){const t=hist.pop();if(t){page=t.p;go(t.s,true)}else go(S.user?'hub':'landing',true)}
 window.addEventListener('popstate',()=>back());
 function go(s,np){if(!np&&s!=screen)push();screen=s;document.body.classList.toggle('app',s=='app');if(s=='app')render();else{$('#entry').innerHTML=entry[s]();bindEntry(s)}window.scrollTo(0,0)}
+const cloudBase=()=>S.cloud.url.replace(/\/+$/,'')+'/rooms/'+encodeURIComponent(S.cloud.room),cq=()=>S.cloud.token?'?auth='+encodeURIComponent(S.cloud.token):'';
+let pdc=0;
+function mergeDaily(d){for(const k in (S.cd||{}))delete S.log[k];S.cd={};
+ if(d)for(const[date,devs]of Object.entries(d)){if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!devs||typeof devs!='object')continue;const o={};
+  for(const[id,kwh]of Object.entries(devs)){if(typeof kwh!='number')continue;o[devFor(id,id).name]=kwh*S.rate}
+  S.log[date]=o;S.cd[date]=1}save()}
+async function pollDaily(){try{const r=await fetch(cloudBase()+'/daily.json'+cq());if(!r.ok)return;mergeDaily(await r.json())}catch(e){}}
 const DEMO=[{id:'demo-aircon',name:'Air conditioner',type:'ac',watts:900,hoursPerDay:8,demo:true},{id:'demo-fridge',name:'Fridge',type:'other',watts:100,hoursPerDay:8,demo:true},{id:'demo-computer',name:'Computer',type:'other',watts:150,hoursPerDay:5,demo:true}];
 const TYPES={ac:'Air conditioner',fridge:'Refrigerator',fan:'Fan',tv:'TV / monitor',computer:'Computer / laptop',lighting:'Lighting',heater:'Water heater / kettle',other:'Other'};
 const typeOpts=sel=>Object.entries(TYPES).map(([k,v])=>`<option value="${k}" ${k==sel?'selected':''}>${v}</option>`).join('');
-const wm=()=>{const n=new Date(),ym=wmon||(n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')),[y,m]=ym.split('-').map(Number);return{ym,y,m,dm:new Date(y,m,0).getDate()}};
+const wm=()=>{const n=nowD(),ym=wmon||(n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')),[y,m]=ym.split('-').map(Number);return{ym,y,m,dm:new Date(y,m,0).getDate()}};
 function calHTML(ym,days,ctx){const[y,m]=ym.split('-').map(Number),dm=new Date(y,m,0).getDate(),off=new Date(y,m-1,1).getDay();
  return `<div class="calbox"><div class="mu" style="margin:6px 0">Tap the days used in ${new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})} · <b>${days.length} of ${dm}</b> selected</div>
  <div class="cal">${['S','M','T','W','T','F','S'].map(x=>`<span class="cdh">${x}</span>`).join('')}${'<span></span>'.repeat(off)}${Array.from({length:dm},(_,i)=>i+1).map(d=>`<button class="cd ${days.includes(d)?'on':''}" data-cd="${d}" data-ctx="${ctx}">${d}</button>`).join('')}</div>
@@ -598,8 +567,44 @@ function calSet(ctx,a){if(ctx==='new')calDraft=a;else{const it=S.items[+ctx];it.
 function calToggle(ctx,d){const a=(calArr(ctx)||[]).slice(),i=a.indexOf(d);if(i>=0)a.splice(i,1);else a.push(d);calSet(ctx,a.sort((p,q)=>p-q))}
 function calQuick(ctx,q){const c=wm(),all=Array.from({length:c.dm},(_,i)=>i+1),wd=d=>new Date(c.y,c.m-1,d).getDay();
  calSet(ctx,q=='all'?all:q=='wk'?all.filter(d=>wd(d)>=1&&wd(d)<=5):q=='we'?all.filter(d=>wd(d)==0||wd(d)==6):[])}
+function estModel(itemsIn){const c=wm(),n=c.dm,items=itemsIn||S.items.filter(i=>i.manual);if(!items.length)return null;
+ const est=it=>estimateAppliance({...it,orientation:S.room.orientation,ageYears:it.ageYears??(it.type=='ac'?S.room.ageYears:undefined)},S.rate).costDay,E=items.map(est),
+ daysOf=it=>{const a=(it.daysByMonth||{})[c.ym];if(a)return a.filter(x=>x<=n);const k=Math.min(it.daysUsed||n,n);return Array.from({length:k},(_,i)=>Math.floor(i*n/k)+1)},
+ sets=items.map(it=>new Set(daysOf(it))),K=sets.map(s=>s.size),
+ days=Array.from({length:n},(_,i)=>{const exp=items.map((it,k)=>sets[k].has(i+1)?E[k].expected:0);return{exp,T:exp.reduce((a,b)=>a+b,0)}}),
+ ex=days.reduce((s,d)=>s+d.T,0),sd=Math.sqrt(items.reduce((s,it,k)=>s+((E[k].max-E[k].min)/2*K[k])**2,0));
+ return{ym:c.ym,n,items,E,k:K,days,total:{min:Math.max(0,ex-sd),expected:ex,max:ex+sd}}}
+function estTips(M,P){const n=M.n,lim=S.budget/n,by=M.items.map((it,k)=>M.E[k].expected*M.k[k]),sum=by.reduce((a,b)=>a+b,0)||1;
+ if(M.total.expected>S.budget)P('Do today','Estimated bill is over your budget',`The estimate is about ${B(M.total.expected)} against a budget of ${B(S.budget)}. Use the biggest appliances on fewer days or for fewer hours to get under budget.`);
+ else P('Keep it up','Estimated bill is within your budget',`The estimate is about ${B(M.total.expected)} against a budget of ${B(S.budget)}.`);
+ const ov=M.days.filter(d=>d.T>lim).length;if(ov)P('Suggestion',`${ov} of ${n} days are estimated over the daily budget`,'On those days the appliances you marked add up to more than the daily budget. Try spreading heavy appliances across more days.');
+ const ac=M.items.reduce((s,it,k)=>s+(it.type=='ac'?by[k]:0),0),sh=ac/sum*100;
+ if(sh>65)P('Do today','Air conditioner use is higher than usual',`The AC is ${sh.toFixed(0)}% of the estimated cost. Try 26°C with a fan, and set a timer to switch off 30 minutes before you wake.`);
+ else{const k=by.indexOf(Math.max(...by));P('Info',`${M.items[k].name} costs the most: ${(by[k]/sum*100).toFixed(0)}% of the estimate`,`${B(by[k])} of ${B(sum)}`)}}
+function estDash(M,ex){const BG=ex?Math.round(((M.days.map(d=>d.T).filter(x=>x>0).sort((p,q)=>p-q))[Math.floor(M.days.filter(d=>d.T>0).length/2)]||0)*1.02*M.n/10)*10:S.budget,n=M.n,lim=BG/n,dT=M.days.map(d=>d.T),mx=Math.max(lim*1.5,...dT,1),over=dT.map((v,i)=>[i+1,v]).filter(([,v])=>v>lim),
+ by=M.items.map((it,k)=>M.E[k].expected*M.k[k]),sum=by.reduce((a,b)=>a+b,0)||1,top=by.indexOf(Math.max(...by)),[yy,mm]=M.ym.split('-').map(Number),
+ ml=new Date(yy,mm-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}),nw=nowD(),cur=nw.getFullYear()==yy&&nw.getMonth()+1==mm,
+ K=(i,t,s,v,c='')=>`<div class="kpi ${c}">${ic(i)}<div><b>${t}</b><small>${s}</small></div><span class="v">${v}</span></div>`,
+ bars=M.days.map((d,i)=>d.T>0?`<div class="col"><div class="stk${d.T>lim?' over':''}${cur&&i+1==nw.getDate()?' today':''}" style="height:${d.T/mx*100}%" title="Day ${i+1}: ${B(d.T)}">${d.exp.map((x,k)=>`<div class="seg" style="height:${x/d.T*100}%;background:${PAL[k%PAL.length]}"></div>`).join('')}</div></div>`:`<div class="col"><div class="stk fut" style="height:2%" title="Day ${i+1}: not used"></div></div>`).join(''),
+ lab=M.days.map((_,i)=>`<span>${(i+1)%5==0||i==0?i+1:''}</span>`).join(''),T=M.total,bad=T.expected>BG;
+ return `<div ${ex?'class="exmp"':'id="estdash"'}>${ex?'':`<div class="eyebrow">Overview</div><h1>Energy dashboard | ${ml}</h1>`}
+ <div class="meta"><span class="chip" style="color:#fbbf24">${ex?'EXAMPLE':'ESTIMATE'}</span> ${ex?'Sample appliances, not your data. Add your own or connect your board.':'Based on the appliances in What-if, not measured data. '+cstat}</div>
+ <div class="alert ${bad?'':'ok'}">${bad?'⚠️ Estimated bill is over your budget by '+B(T.expected-BG)+' ('+B(T.expected)+' vs '+B(BG)+')':'✓ Estimated bill '+B(T.expected)+' is within your '+B(BG)+' budget'}</div>
+ ${ex?'':'<div class="ctl" style="margin:0 0 4px"><button class="btn g" id="ge">Edit appliances</button><button class="btn g" id="gc">Connect board</button></div>'}
+ <h2 class="sec">Estimated month at a glance</h2><p class="secd">Connect your board and this page switches to measured usage automatically.</p>
+ <div class="kpis">${K('wallet','Estimated bill','Likely range '+B(T.min)+'–'+B(T.max),B(T.expected),'hl')}${K('target','Monthly budget',B(lim)+' per day',B(BG))}${K('cal','Average per day','Over all '+n+' days of the month',B(T.expected/n))}${K('award','Days above daily budget','estimated, of '+n+' days',over.length)}${K('zap','Biggest cost',M.items[top].name+' · '+(by[top]/sum*100).toFixed(0)+'%',B(by[top]))}</div>
+ <h2 class="sec">Estimated daily cost</h2><p class="secd">Stacked by appliance. Dashed line = daily budget. Short bars are days an appliance is not used.</p>
+ <div class="card"><div class="row"><div class="ctl" style="margin:0">${ex?`<b>Daily cost by appliance</b>`:`<button class="btn g" id="pm">‹</button><b>${ml}</b><button class="btn g" id="nm">›</button>`}</div><span class="mu">Target ${lim.toFixed(0)} THB/day</span></div>
+ <div class="plot"><div class="lim" style="bottom:${lim/mx*100}%"></div>${bars}</div><div class="lab">${lab}</div>
+ <div class="lg">${M.items.map((it,k)=>`<span><i style="background:${PAL[k%PAL.length]}"></i>${esc(it.name)}</span>`).join('')}<span><i style="background:var(--tl)"></i>Daily budget line</span><span><i style="background:var(--rd)"></i>Red mark = above the daily budget</span></div>${ex?'':`<div class="mu" style="margin-top:12px">Estimated total for ${ml}: <b style="color:#fff">${B(T.expected)}</b> · likely range ${B(T.min)}–${B(T.max)} · ${n} days</div><div class="bar" style="margin:8px 0 2px"><b style="width:${Math.min(100,T.expected/BG*100)}%"></b></div><div class="mu">${(T.expected/BG*100).toFixed(0)}% of the ${B(BG)} monthly budget</div>`}</div>
+ ${over.length?`<h2 class="sec">Days above the daily budget (estimated)</h2><div class="card">${T.expected<=BG?`<p class="mu" style="margin:0 0 10px">The dashed line is the monthly budget divided by the days in the month. These days are above it, but the month total is still within budget because other days are below it.</p>`:''}`+over.slice(0,5).map(([d,v])=>`<div class="crow"><span>Day ${d} · ${B(v)} vs ${B(lim)}</span><span class="delta up">▲ Over ${B(v-lim)}</span></div>`).join('')+(over.length>5?`<div class="mu" style="margin-top:6px">+ ${over.length-5} more days over budget</div>`:'')+`</div>`:''}
+ <h2 class="sec">Cost by appliance</h2><div class="card"><table class="tbl"><thead><tr><th>Appliance</th><th>Type</th><th>Days</th><th>Estimated cost</th><th style="width:26%">Share</th></tr></thead><tbody>${M.items.map((it,k)=>{const e=M.E[k],kd=M.k[k],p=by[k]/sum*100;return `<tr><td>${esc(it.name)}</td><td class="mu">${TYPES[it.type]||'Other'}</td><td>${kd}</td><td>${B(e.min*kd)}–${B(e.max*kd)}</td><td><div class="bar sm"><b style="width:${p}%"></b></div><span class="mu">${p.toFixed(0)}%</span></td></tr>`}).join('')}</tbody></table></div>
+ ${ex?'':'<div class="card" id="live">'+liveHTML()+'</div>'}</div>`}
+function exampleModel(){const c=wm(),wk=Array.from({length:c.dm},(_,i)=>i+1).filter(d=>![0,6].includes(new Date(c.y,c.m-1,d).getDay()));
+ return estModel([{name:'Air conditioner',type:'ac',watts:800,hoursPerDay:8,ageYears:5,condition:'normal',daysByMonth:{[c.ym]:wk}},{name:'Refrigerator',type:'fridge',watts:100,hoursPerDay:24,condition:'normal'},{name:'Fan',type:'fan',watts:50,hoursPerDay:6,condition:'normal',daysUsed:10}])}
+const shiftYm=(ym,k)=>{const[y,m]=ym.split('-').map(Number),d=new Date(y,m-1+k,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
 const pages={
-home(){const r=calc(),now=new Date(),d=now.getDate(),n=daysInMonth(now),y=now.getFullYear(),m=now.getMonth(),
+home(){const r=calc(),now=nowD(),d=now.getDate(),n=daysInMonth(now),y=now.getFullYear(),m=now.getMonth(),
  R=monthReal(now,r),spent=R?R.sum:r.daily.expected*d,M=R?R.M:r.monthly,lim=dailyBudget(S.budget,now),pct=Math.min(100,spent/S.budget*100),
  dv=k=>{const v=S.log[ymd(y,m,k)];return v==null?null:tot(v)},today=dv(d)??(R?null:r.daily.expected),yest=d>1?dv(d-1):null,done=[];
  for(let i=1;i<d;i++){const v=dv(i);if(v!=null)done.push(v)}
@@ -607,11 +612,16 @@ home(){const r=calc(),now=new Date(),d=now.getDate(),n=daysInMonth(now),y=now.ge
  mon=now.toLocaleDateString('en-US',{month:'long',year:'numeric'}),src=R?'Measured':'Estimated',
  dl=(v,ref)=>`<span class="delta ${v<=ref?'dn':'up'}">${v<=ref?'▼ Under target':'▲ Over target'} ${Math.abs(v-ref).toFixed(0)}</span>`,
  K=(i,t,s,v,c='')=>`<div class="kpi ${c}">${ic(i)}<div><b>${t}</b><small>${s}</small></div><span class="v">${v}</span></div>`;
+ const EM=estModel(),tabsH=(R&&EM)?`<div class="ctl" style="margin:0 0 14px"><button class="btn ${ovTab=='m'?'':'g'}" id="tm">Measured</button><button class="btn ${ovTab=='e'?'':'g'}" id="te">Estimate (What-if)</button></div>`:'';
+ if(!R&&EM)return estDash(EM);
+ if(R&&EM&&ovTab=='e')return tabsH+estDash(EM);
  if(!R)return `<div class="eyebrow">Overview</div><h1>Energy dashboard | ${mon}</h1><div class="meta">${cstat}</div>
- <div class="card" id="empty"><div class="row" style="align-items:flex-start;gap:16px"><div><b>No measured data yet</b><p class="mu" style="margin:6px 0 0">${S.cloud.on?'Connected. Waiting for readings from your ESP32 board…':'Connect your ESP32 board and your usage, forecast and charts will appear here automatically.'}</p></div>${S.cloud.on?'':'<button class="btn" id="gc">Connect board</button>'}</div></div>
- <div class="card" id="live">${liveHTML()}</div>`;
- return `<div class="eyebrow">Overview</div><h1>Energy dashboard | ${mon}</h1>
- <div class="meta">${R?'Measured data from ESP32':'Formula estimate (no measured data yet)'} | ${cstat}</div>
+ <div class="card" id="empty"><div class="row" style="align-items:flex-start;gap:16px"><div><b>No measured data yet</b><p class="mu" style="margin:6px 0 0">${S.cloud.on?'Connected. Waiting for readings from your ESP32 board…':'Connect your ESP32 board and your usage, forecast and charts will appear here automatically.'}</p></div>${S.cloud.on?'':'<button class="btn" id="gc">Connect board</button>'}<button class="btn g" id="ge">Estimate my bill</button></div></div>
+ <div class="card" id="live">${liveHTML()}</div>
+ <h2 class="sec">Preview</h2><p class="secd">An example with sample appliances, so you can see what this page will show. Your own data replaces it.</p>${estDash(exampleModel(),true)}`;
+ return tabsH+`<div class="eyebrow">Overview</div><h1>Energy dashboard | ${mon}</h1>
+ <div class="meta">${S.cloud.on&&Object.keys(live).length?'Measured data from your ESP32 board':'Data saved in this browser'} | ${cstat}</div>
+ ${S.cloud.on?'':'<div class="card" style="border-color:rgba(251,191,36,.4)"><div class="row" style="gap:12px;align-items:flex-start"><div><b>This data is saved in this browser, not coming from a connected board.</b><p class="mu" style="margin:6px 0 0">It may come from the test tools or an earlier connection. Clear it to start fresh, or connect your board.</p></div><button class="btn g" id="sdc">Clear saved data</button></div></div>'}
  <div class="alert ${al?'':'ok'}">${al?'⚠️ Over budget today: '+B(today)+' (budget '+lim.toFixed(2)+' THB/day)':'✓ '+(today==null?'No data for today yet':'Today '+B(today)+' is within the '+lim.toFixed(2)+' THB/day budget')}</div>
  <h2 class="sec">Today at a glance</h2><p class="secd">Key indicators for usage and budget right now</p>
  <div class="kpis">${K('wallet','Spent today',src,today==null?'—':B(today),'hl')}${K('target','Daily budget','Target',B(lim))}${K('cal','Spent this month',pct.toFixed(0)+'% of '+B(S.budget)+' budget',B(spent))}
@@ -625,7 +635,7 @@ home(){const r=calc(),now=new Date(),d=now.getDate(),n=daysInMonth(now),y=now.ge
  <h2 class="sec">Daily trend</h2><p class="secd">Stacked bars by appliance. Dashed line = daily budget. Tap a bar for details.</p>${chart(r,now,lim)}
  <h2 class="sec">Cost by appliance</h2><p class="secd">Biggest consumers first</p>${appCard(r,now)}`},
 
-data(){const dev=S.items.map((it,i)=>[it,i]).filter(([it])=>!it.manual),man=S.items.map((it,i)=>[it,i]).filter(([it])=>it.manual),ym=wmon||(new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0')),[wy,wmn]=ym.split('-').map(Number),dm=new Date(wy,wmn,0).getDate(),mlabel=new Date(wy,wmn-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}),dd=it=>{const a=(it.daysByMonth||{})[ym];return a?a.filter(x=>x<=dm).length:Math.min(it.daysUsed||dm,dm)},
+data(){const dev=S.items.map((it,i)=>[it,i]).filter(([it])=>!it.manual),man=S.items.map((it,i)=>[it,i]).filter(([it])=>it.manual),ym=wmon||(nowD().getFullYear()+'-'+String(nowD().getMonth()+1).padStart(2,'0')),[wy,wmn]=ym.split('-').map(Number),dm=new Date(wy,wmn,0).getDate(),mlabel=new Date(wy,wmn-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}),dd=it=>{const a=(it.daysByMonth||{})[ym];return a?a.filter(x=>x<=dm).length:Math.min(it.daysUsed||dm,dm)},
  CND={new:'New',normal:'Normal',old:'Old',faulty:'Faulty'},
  est=it=>estimateAppliance({...it,orientation:S.room.orientation,ageYears:it.ageYears??(it.type=='ac'?S.room.ageYears:undefined)},S.rate).costDay;
  return `<div class="eyebrow">System setup</div><h1>Rooms &amp; devices</h1><p class="sub">Connect your ESP32 meters, name your appliances, and set room details.</p>
@@ -650,10 +660,10 @@ data(){const dev=S.items.map((it,i)=>[it,i]).filter(([it])=>!it.manual),man=S.it
  <div style="margin-top:12px"><button class="btn g" id="calnew">${calOpen==='new'?'Hide calendar':'Pick days on calendar'}</button> <span class="mu">${calDraft.length?calDraft.length+' days selected (overrides the number above)':'Or type a number of days above'}</span></div>${calOpen==='new'?calHTML(ym,calDraft,'new'):''}
  <button class="btn" id="add">+ Add appliance</button>
  ${man.length?(()=>{const t={min:0,expected:0,max:0};let v2=0;man.forEach(([it])=>{const e=est(it),k=dd(it);t.expected+=e.expected*k;v2+=((e.max-e.min)/2*k)**2});const sd=Math.sqrt(v2);t.min=Math.max(0,t.expected-sd);t.max=t.expected+sd;
- return `<div class="crow" style="margin-top:14px"><b>Estimated bill · ${mlabel}</b><span>${B(t.min)}–${B(t.max)} <span class="mu">(about ${B(t.expected)})</span></span></div><div class="crow"><span class="mu">Your monthly budget</span><span>${B(S.budget)}${t.expected>S.budget?'<span class="delta up">▲ over budget</span>':'<span class="delta dn">▼ within budget</span>'}</span></div>`})():''}
+ return `<div class="crow" style="margin-top:14px"><b>Estimated bill · ${mlabel}</b><span>${B(t.min)}–${B(t.max)} <span class="mu">(about ${B(t.expected)})</span></span></div><div class="crow"><span class="mu">Your monthly budget</span><span>${B(S.budget)}${t.expected>S.budget?'<span class="delta up">▲ over budget</span>':'<span class="delta dn">▼ within budget</span>'}</span></div><div style="margin-top:12px"><button class="btn g" id="gov">See graphs on Overview →</button></div>`})():''}
  ${man.map(([it,i])=>{const e=est(it);return `<div class="item row"><span>${esc(it.name)} <span class="mu">${TYPES[it.type]||'Other'} · ${it.watts} W × ${it.hoursPerDay} h × ${dd(it)} days${it.ageYears!=null?' · age '+it.ageYears+' yr':''}${it.condition?' · '+CND[it.condition]:''}</span></span><span>+${B(e.min*dd(it))}–${B(e.max*dd(it))}/month <button class="x" data-ed="${i}" style="color:#60a5fa;margin-right:10px">Edit days</button><button class="x" data-del="${i}">Delete</button></span></div>${calOpen===i?`<div class="item">${calHTML(ym,(it.daysByMonth||{})[ym]||[],i)}</div>`:''}`}).join('')}</details>`},
 
-tips(){const r=calc(),now=new Date(),d=now.getDate(),n=daysInMonth(now),y=now.getFullYear(),m=now.getMonth(),by=realByDevice(now),
+tips(){const r=calc(),now=nowD(),d=now.getDate(),n=daysInMonth(now),y=now.getFullYear(),m=now.getMonth(),by=realByDevice(now),
  R=monthReal(now,r),lim=dailyBudget(S.budget,now),real=!!R,G=[[],[]],P=(c,t,x,g=0)=>G[g].push([c,t,x]),
  dvv=k=>{const v=S.log[ymd(y,m,k)];return v==null?null:tot(v)},
  avgOf=(a,b)=>{const xs=[];for(let k=Math.max(1,a);k<=b;k++){const v=dvv(k);if(v!=null)xs.push(v)}return xs.length>=3?xs.reduce((s,x)=>s+x,0)/xs.length:null},
@@ -676,6 +686,7 @@ tips(){const r=calc(),now=new Date(),d=now.getDate(),n=daysInMonth(now),y=now.ge
    const ks=Object.keys(by).filter(k=>k!='__other').sort((p,q)=>by[q]-by[p]);
    if(ks.length&&!(isAc(ks[0])&&acShare>65))P('Info',`${ks[0]} uses the most: ${(by[ks[0]]/sumBy*100).toFixed(0)}% of this month cost`,`${B(by[ks[0]])} of ${B(sumBy)}`)}
  }
+ else{const EM=estModel();if(EM)estTips(EM,P)}
  if(S.room.ageYears>7)P('Suggestion','Older air conditioner','ACs over 7 years old use more power. Clean the filter and check the refrigerant.',1);
  const bad=S.items.filter(i=>['old','faulty'].includes(i.condition));if(bad.length)P('Suggestion','Old or faulty appliances may draw more than their label',bad.map(i=>i.name).join(', ')+' — measure with a smart plug and compare with the label.',1);
  if(['west','south'].includes(S.room.orientation))P('Suggestion','Room gets afternoon sun','Window film or thermal curtains reduce the AC load.',1);
@@ -690,9 +701,15 @@ set(){return `<div class="eyebrow">Settings</div><h1>Budget &amp; electricity ra
  <div class="card"><label>Price per unit (THB/kWh)</label><input id="rt" type="number" step="0.01" value="${S.rate}"><div class="mu">Use the rate from your dorm actual electricity bill.</div></div>
  <button class="btn" id="sv">Save settings</button>`}};
 
-function render(){$('#v').innerHTML='<button class="btn g backbtn" id="bk">← Back</button>'+pages[page]();document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.p==page));$('#bk').onclick=()=>{hs&&hist.length?history.back():back()};
-if($('#gc'))$('#gc').onclick=()=>{push();page='data';render()};
-  if(page=='home'&&$('#pv')){const now=new Date(),y=view.getFullYear(),m=view.getMonth(),n=daysInMonth(view),cur=y==now.getFullYear()&&m==now.getMonth(),k=d=>ymd(y,m,d);
+function render(){$('#v').innerHTML='<button class="btn g backbtn" id="bk">← Back</button>'+(S.demoDate?'<div class="alert" style="justify-content:space-between;gap:12px"><span>Demo date: '+new Date(S.demoDate+'T12:00:00').toLocaleDateString('en-US',{dateStyle:'long'})+' · viewing simulated data from Firebase</span><button class="btn g" id="demx">Exit demo</button></div>':'')+pages[page]();document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.p==page));$('#bk').onclick=()=>{hs&&hist.length?history.back():back()};if($('#demx'))$('#demx').onclick=()=>{S.demoDate=null;view=nowD();view.setDate(1);sel=null;save();render()};
+if($('#pm'))$('#pm').onclick=()=>{wmon=shiftYm(wm().ym,-1);calDraft=[];calOpen=null;render()};
+  if($('#nm'))$('#nm').onclick=()=>{wmon=shiftYm(wm().ym,1);calDraft=[];calOpen=null;render()};
+  if($('#gc'))$('#gc').onclick=()=>{push();page='data';render()};
+  if($('#ge'))$('#ge').onclick=()=>{push();page='data';whatOpen=true;render()};
+  if($('#tm'))$('#tm').onclick=()=>{ovTab='m';render()};
+  if($('#te'))$('#te').onclick=()=>{ovTab='e';render()};
+  if($('#sdc'))$('#sdc').onclick=()=>{clearSaved();render()};
+  if(page=='home'&&$('#pv')){const now=nowD(),y=view.getFullYear(),m=view.getMonth(),n=daysInMonth(view),cur=y==now.getFullYear()&&m==now.getMonth(),k=d=>ymd(y,m,d);
   $('#pv').onclick=()=>{view.setMonth(view.getMonth()-1);sel=null;render()};
   $('#nx').onclick=()=>{view.setMonth(view.getMonth()+1);sel=null;render()};
   document.querySelectorAll('.col').forEach(c=>c.onclick=()=>{sel=+c.dataset.d;render()});
@@ -709,6 +726,7 @@ if($('#gc'))$('#gc').onclick=()=>{push();page='data';render()};
   document.querySelectorAll('.dt').forEach(x=>x.onchange=()=>{S.items[+x.dataset.i].type=x.value;save()});
   $('#wi').ontoggle=()=>{whatOpen=$('#wi').open};
   $('#wm').onchange=()=>{wmon=$('#wm').value||null;calDraft=[];calOpen=null;whatOpen=true;render()};
+  if($('#gov'))$('#gov').onclick=()=>{push();page='home';render()};
   $('#calnew').onclick=()=>{calOpen=calOpen==='new'?null:'new';whatOpen=true;render()};
   document.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{const i=+b.dataset.ed,it=S.items[i],c=wm();it.daysByMonth=it.daysByMonth||{};
    if(!it.daysByMonth[c.ym])it.daysByMonth[c.ym]=Array.from({length:it.daysUsed?Math.min(it.daysUsed,c.dm):c.dm},(_,k)=>k+1);
